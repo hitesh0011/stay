@@ -1,0 +1,125 @@
+package com.staynest.demo.security;
+
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import java.security.Key;
+import java.util.Date;
+
+@Component
+public class JwtUtil {
+
+    @Value("${jwt.secret}") private String secret;
+    @Value("${jwt.expiration}") private long expiration; // ms, e.g. 86400000
+
+    private Key key() { return Keys.hmacShaKeyFor(secret.getBytes()); }
+
+    public String generateToken(CustomUserDetails user) {
+        return Jwts.builder()
+                .setSubject(user.getUsername())
+                .claim("role", user.getRole())
+                .claim("userId", user.getUserId())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(key(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String extractEmail(String token) {
+        return Jwts.parserBuilder().setSigningKey(key()).build()
+                .parseClaimsJws(token).getBody().getSubject();
+    }
+
+    public boolean isValid(String token) {
+        try {
+            Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(token);
+            return true;
+        } catch (JwtException | IllegalArgumentException e) { return false; }
+    }
+}
+
+JwtFilter
+javapackage com.staynest.demo.security;
+
+import jakarta.servlet.*;
+import jakarta.servlet.http.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import java.io.IOException;
+
+@Component
+@RequiredArgsConstructor
+public class JwtFilter extends OncePerRequestFilter {
+
+    private final JwtUtil jwtUtil;
+    private final CustomUserDetailsService userDetailsService;
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res,
+                                    FilterChain chain) throws ServletException, IOException {
+        String header = req.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            String token = header.substring(7);
+            if (jwtUtil.isValid(token)) {
+                String email = jwtUtil.extractEmail(token);
+                UserDetails ud = userDetailsService.loadUserByUsername(email);
+                var auth = new UsernamePasswordAuthenticationToken(ud, null, ud.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            }
+        }
+        chain.doFilter(req, res);
+    }
+}
+
+SecurityConfig
+javapackage com.staynest.demo.config;
+
+import com.staynest.demo.security.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.*;
+import org.springframework.security.authentication.*;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+@EnableMethodSecurity
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    private final JwtFilter jwtFilter;
+    private final CustomUserDetailsService userDetailsService;
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http.csrf(c -> c.disable())
+            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(a -> a
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/admin/**").hasRole("Admin")
+                .requestMatchers("/api/housekeeping/**").hasAnyRole("Admin", "Housekeeping")
+                .requestMatchers("/api/fb/**", "/api/dining/**", "/api/menu/**").hasAnyRole("Admin", "FBManager")
+                .requestMatchers("/api/reports/**").hasAnyRole("Admin", "RevenueManager")
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+
+    @Bean public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+
+    @Bean
+    public AuthenticationManager authManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+}
