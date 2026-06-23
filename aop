@@ -1,0 +1,115 @@
+**LoggingAspect.java**
+```java
+package com.staynest.demo.aspect;
+
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+@Aspect
+@Component
+public class LoggingAspect {
+
+    private static final Logger logger = LoggerFactory.getLogger(LoggingAspect.class);
+
+    @Pointcut("execution(* com.staynest.demo.controller.*.*(..))")
+    public void controllerMethods() {}
+
+    @Pointcut("execution(* com.staynest.demo.serviceimpl.*.*(..))")
+    public void serviceMethods() {}
+
+    @Pointcut("controllerMethods() || serviceMethods()")
+    public void applicationMethods() {}
+
+    @Before("controllerMethods()")
+    public void beforeController(JoinPoint jp) {
+        logger.debug("Controller called: {} | Args: {}", jp.getSignature().getName(), jp.getArgs());
+    }
+
+    @Before("serviceMethods()")
+    public void beforeService(JoinPoint jp) {
+        logger.debug("Service called: {} | Args: {}", jp.getSignature().getName(), jp.getArgs());
+    }
+
+    @After("applicationMethods()")
+    public void afterMethod(JoinPoint jp) {
+        logger.trace("Exiting: {}", jp.getSignature().getName());
+    }
+
+    @AfterReturning(pointcut = "controllerMethods()", returning = "result")
+    public void afterReturningController(JoinPoint jp, Object result) {
+        logger.info("Controller {} SUCCESS | Response: {}", jp.getSignature().getName(), result);
+    }
+
+    @AfterReturning(pointcut = "serviceMethods()", returning = "result")
+    public void afterReturningService(JoinPoint jp, Object result) {
+        logger.info("Service {} SUCCESS | Result: {}", jp.getSignature().getName(), result);
+    }
+
+    @AfterThrowing(pointcut = "applicationMethods()", throwing = "ex")
+    public void afterThrowing(JoinPoint jp, Exception ex) {
+        logger.error("EXCEPTION in {} | Message: {}", jp.getSignature().getName(), ex.getMessage());
+    }
+
+    @Around("applicationMethods()")
+    public Object measureExecutionTime(ProceedingJoinPoint pjp) throws Throwable {
+        long start = System.currentTimeMillis();
+        Object result = pjp.proceed();
+        long timeTaken = System.currentTimeMillis() - start;
+        if (timeTaken > 1000)
+            logger.warn("SLOW METHOD: {} took {}ms", pjp.getSignature().getName(), timeTaken);
+        else
+            logger.debug("Method {} completed in {}ms", pjp.getSignature().getName(), timeTaken);
+        return result;
+    }
+}
+```
+
+**AuditLoggingAspect.java**
+```java
+package com.staynest.demo.aspect;
+
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.AuditLogService;
+import lombok.RequiredArgsConstructor;
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.AfterReturning;
+import org.aspectj.lang.annotation.Aspect;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+
+@Aspect
+@Component
+@RequiredArgsConstructor
+public class AuditLoggingAspect {
+
+    private final AuditLogService auditLogService;
+    private final UsersRepository usersRepository;
+
+    @AfterReturning("execution(* com.staynest.demo.serviceimpl.*ServiceImpl.create*(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.update*(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.delete*(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.cancel*(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.checkIn(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.checkOut(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.postCharge(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.completeTask(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.resolveRequest(..))")
+    public void logAction(JoinPoint jp) {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated()) return;
+            String email = auth.getName();
+            usersRepository.findByEmail(email).ifPresent(user -> {
+                String method = jp.getSignature().getName();
+                String entity = jp.getTarget().getClass().getSimpleName().replace("ServiceImpl", "");
+                auditLogService.createLog(user.getUserId(), method, entity);
+            });
+        } catch (Exception ignored) {}
+    }
+}
+```
