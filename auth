@@ -1,0 +1,33 @@
+package com.staynest.demo.dto;
+import lombok.*;
+@Data public class AuthRequestDTO { private String email; private String password; }
+
+package com.staynest.demo.dto;
+import lombok.*;
+@Data @AllArgsConstructor public class AuthResponseDTO { private String token; private String role; }
+javapackage com.staynest.demo.controller;
+
+import com.staynest.demo.dto.*;
+import com.staynest.demo.security.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final AuthenticationManager authManager;
+    private final JwtUtil jwtUtil;
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponseDTO> login(@RequestBody AuthRequestDTO req) {
+        Authentication auth = authManager.authenticate(
+                new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));
+        CustomUserDetails ud = (CustomUserDetails) auth.getPrincipal();
+        return ResponseEntity.ok(new AuthResponseDTO(jwtUtil.generateToken(ud), ud.getRole()));
+    }
+}
