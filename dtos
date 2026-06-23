@@ -1,0 +1,446 @@
+// ===== USER DTOs =====
+package com.staynest.demo.dto;
+
+import com.staynest.demo.enums.Role;
+import com.staynest.demo.enums.UserStatus;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class UserRequestDTO {
+    private String name;
+    private Role role;
+    private String email;
+    private String password;
+    private String phone;
+    private UserStatus userStatus;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class UserResponseDTO {
+    private Integer userId;
+    private String name;
+    private Role role;
+    private String email;
+    private String phone;
+    private UserStatus userStatus;
+}
+java// ===== AUDIT LOG DTO =====
+package com.staynest.demo.dto;
+
+import java.time.LocalDateTime;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class AuditLogResponseDTO {
+    private Integer auditId;
+    private Integer userId;
+    private String userName;
+    private String action;
+    private String entityType;
+    private LocalDateTime localDateTime;
+}
+java// ===== GUEST PROFILE DTOs =====
+package com.staynest.demo.dto;
+
+import com.staynest.demo.enums.GuestStatus;
+import com.staynest.demo.enums.LoyaltyTier;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class GuestProfileRequestDTO {
+    private Integer userId;
+    private String nationality;
+    private String idDocumentType;
+    private String idNumber;
+    private String preferencesJson;
+    private LoyaltyTier loyaltyTier;
+    private GuestStatus status;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class GuestProfileResponseDTO {
+    private Integer guestId;
+    private Integer userId;
+    private String guestName; // from Users
+    private String email;     // from Users
+    private String nationality;
+    private String idDocumentType;
+    private String idNumber;
+    private String preferencesJson;
+    private LoyaltyTier loyaltyTier;
+    private GuestStatus status;
+}
+java// ===== ROOM TYPE DTOs =====
+package com.staynest.demo.dto;
+
+import com.staynest.demo.enums.RoomTypeName;
+import com.staynest.demo.enums.RoomTypeStatus;
+import java.util.List;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class RoomTypeRequestDTO {
+    private RoomTypeName name;
+    private String bedConfiguration;
+    private Integer maxOccupancy;
+    private Integer baseRate;
+    private List<String> amenitiesList;
+    private RoomTypeStatus roomTypeStatus;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class RoomTypeResponseDTO {
+    private Integer roomTypeId;
+    private RoomTypeName name;
+    private String bedConfiguration;
+    private Integer maxOccupancy;
+    private Integer baseRate;
+    private List<String> amenitiesList;
+    private RoomTypeStatus roomTypeStatus;
+}
+java// ===== ROOM DTOs =====
+package com.staynest.demo.dto;
+
+import com.staynest.demo.enums.RoomStatus;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class RoomRequestDTO {
+    private Integer roomNumber;
+    private Integer floor;
+    private Integer roomTypeId;
+    private RoomStatus roomStatus;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class RoomResponseDTO {
+    private Integer roomId;
+    private Integer roomNumber;
+    private Integer floor;
+    private Integer roomTypeId;
+    private String roomTypeName;
+    private RoomStatus roomStatus;
+}
+java// ===== RATE PLAN DTOs =====
+package com.staynest.demo.dto;
+
+import com.staynest.demo.enums.RatePlanStatus;
+import com.staynest.demo.enums.RatePlanType;
+import java.sql.Date;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class RatePlanRequestDTO {
+    private Integer roomTypeId;
+    private RatePlanType ratePlanType;
+    private Integer pricePerNight;
+    private Date validFrom;
+    private Date validTo;
+    private Boolean mealPlanIncluded;
+    private RatePlanStatus ratePlanStatus;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class RatePlanResponseDTO {
+    private Integer ratePlanId;
+    private Integer roomTypeId;
+    private String roomTypeName;
+    private RatePlanType ratePlanType;
+    private Integer pricePerNight;
+    private Date validFrom;
+    private Date validTo;
+    private Boolean mealPlanIncluded;
+    private RatePlanStatus ratePlanStatus;
+}
+java// ===== RESERVATION DTOs =====
+package com.staynest.demo.dto;
+
+import com.staynest.demo.enums.BookingChannel;
+import com.staynest.demo.enums.ReservationStatus;
+import java.sql.Date;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class ReservationRequestDTO {
+    private Integer guestId;
+    private Integer roomTypeId;
+    private Integer ratePlanId;
+    private Date checkInDate;
+    private Date checkOutDate;
+    private Integer nights;
+    private Integer adults;
+    private Integer children;
+    private Integer totalAmount;
+    private BookingChannel bookingChannel;
+    private ReservationStatus status;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class ReservationResponseDTO {
+    private Integer reservationId;
+    private Integer guestId;
+    private String guestName;
+    private Integer roomTypeId;
+    private String roomTypeName;
+    private Integer ratePlanId;
+    private Date checkInDate;
+    private Date checkOutDate;
+    private Integer nights;
+    private Integer adults;
+    private Integer children;
+    private Integer totalAmount;
+    private BookingChannel bookingChannel;
+    private ReservationStatus status;
+}
+java// ===== STAY RECORD DTOs =====
+package com.staynest.demo.dto;
+
+import com.staynest.demo.enums.StayStatus;
+import java.time.LocalDateTime;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class StayRecordRequestDTO {
+    private Integer reservationId;
+    private Integer guestId;
+    private Integer assignedRoomId;
+    private LocalDateTime actualCheckIn;
+    private LocalDateTime actualCheckOut;
+    private Integer folioBalance;
+    private StayStatus status;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class StayRecordResponseDTO {
+    private Integer stayId;
+    private Integer reservationId;
+    private Integer guestId;
+    private String guestName;
+    private Integer assignedRoomId;
+    private Integer assignedRoomNumber;
+    private LocalDateTime actualCheckIn;
+    private LocalDateTime actualCheckOut;
+    private Integer folioBalance;
+    private StayStatus status;
+}
+java// ===== FOLIO ITEM DTOs =====
+package com.staynest.demo.dto;
+
+import com.staynest.demo.enums.ChargeType;
+import java.time.LocalDateTime;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class FolioItemRequestDTO {
+    private Integer stayId;
+    private ChargeType chargeType;
+    private String description;
+    private Integer amount;
+    private LocalDateTime postedDate;
+    private Integer postedBy;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class FolioItemResponseDTO {
+    private Integer folioItemId;
+    private Integer stayId;
+    private ChargeType chargeType;
+    private String description;
+    private Integer amount;
+    private LocalDateTime postedDate;
+    private Integer postedBy;
+    private String postedByName;
+}
+java// ===== HOUSEKEEPING TASK DTOs =====
+package com.staynest.demo.dto;
+
+import com.staynest.demo.enums.TaskStatus;
+import com.staynest.demo.enums.TaskType;
+import java.time.LocalDateTime;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class HousekeepingTaskRequestDTO {
+    private Integer roomId;
+    private TaskType taskType;
+    private Integer assignedToId;
+    private LocalDateTime assignedDate;
+    private LocalDateTime completedAt;
+    private TaskStatus status;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class HousekeepingTaskResponseDTO {
+    private Integer taskId;
+    private Integer roomId;
+    private Integer roomNumber;
+    private TaskType taskType;
+    private Integer assignedToId;
+    private String assignedToName;
+    private LocalDateTime assignedDate;
+    private LocalDateTime completedAt;
+    private TaskStatus status;
+}
+java// ===== MAINTENANCE REQUEST DTOs =====
+package com.staynest.demo.dto;
+
+import com.staynest.demo.enums.RequestPriority;
+import com.staynest.demo.enums.RequestStatus;
+import java.time.LocalDateTime;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class MaintenanceRequestRequestDTO {
+    private Integer roomId;
+    private Integer reportedBy;
+    private String issueDescription;
+    private RequestPriority priority;
+    private LocalDateTime raisedDate;
+    private LocalDateTime resolvedDate;
+    private RequestStatus status;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class MaintenanceRequestResponseDTO {
+    private Integer requestId;
+    private Integer roomId;
+    private Integer roomNumber;
+    private Integer reportedBy;
+    private String reportedByName;
+    private String issueDescription;
+    private RequestPriority priority;
+    private LocalDateTime raisedDate;
+    private LocalDateTime resolvedDate;
+    private RequestStatus status;
+}
+java// ===== MENU ITEM DTOs =====
+package com.staynest.demo.dto;
+
+import com.staynest.demo.enums.MenuCategory;
+import java.util.List;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class MenuItemRequestDTO {
+    private String name;
+    private MenuCategory category;
+    private Integer price;
+    private Boolean isAvailable;
+    private List<String> dietaryTags;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class MenuItemResponseDTO {
+    private Integer menuItemId;
+    private String name;
+    private MenuCategory category;
+    private Integer price;
+    private Boolean isAvailable;
+    private List<String> dietaryTags;
+}
+java// ===== FB ORDER DTOs =====
+package com.staynest.demo.dto;
+
+import com.staynest.demo.enums.OrderStatus;
+import com.staynest.demo.enums.OrderType;
+import java.time.LocalDateTime;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class FBOrderRequestDTO {
+    private Integer stayId;
+    private Integer tableNumber;
+    private OrderType orderType;
+    private String itemsJson;
+    private Integer totalAmount;
+    private LocalDateTime orderTime;
+    private OrderStatus status;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class FBOrderResponseDTO {
+    private Integer orderId;
+    private Integer stayId;
+    private Integer tableNumber;
+    private OrderType orderType;
+    private String itemsJson;
+    private Integer totalAmount;
+    private LocalDateTime orderTime;
+    private OrderStatus status;
+}
+java// ===== DINING RESERVATION DTOs =====
+package com.staynest.demo.dto;
+
+import com.staynest.demo.enums.DiningStatus;
+import java.sql.Date;
+import java.time.LocalTime;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class DiningReservationRequestDTO {
+    private Integer guestId;
+    private Integer stayId;
+    private String restaurantOutlet;
+    private Date date;
+    private LocalTime time;
+    private Integer covers;
+    private DiningStatus status;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class DiningReservationResponseDTO {
+    private Integer diningResId;
+    private Integer guestId;
+    private String guestName;
+    private Integer stayId;
+    private String restaurantOutlet;
+    private Date date;
+    private LocalTime time;
+    private Integer covers;
+    private DiningStatus status;
+}
+java// ===== HOSPITALITY REPORT DTOs =====
+package com.staynest.demo.dto;
+
+import com.staynest.demo.enums.ReportScope;
+import java.time.LocalDateTime;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class HospitalityReportRequestDTO {
+    private ReportScope scope;
+    private String metricsJson;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class HospitalityReportResponseDTO {
+    private Integer reportId;
+    private ReportScope scope;
+    private String metricsJson;
+    private LocalDateTime generatedDate;
+}
+java// ===== NOTIFICATION DTOs =====
+package com.staynest.demo.dto;
+
+import com.staynest.demo.enums.NotificationCategory;
+import com.staynest.demo.enums.NotificationStatus;
+import java.time.LocalDateTime;
+import lombok.AllArgsConstructor; import lombok.Getter; import lombok.NoArgsConstructor; import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class NotificationRequestDTO {
+    private Integer userId;
+    private String message;
+    private NotificationCategory category;
+    private NotificationStatus status;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class NotificationResponseDTO {
+    private Integer notificationId;
+    private Integer userId;
+    private String message;
+    private NotificationCategory category;
+    private NotificationStatus status;
+    private LocalDateTime createdDate;
+}
