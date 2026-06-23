@@ -1,0 +1,537 @@
+## Postman Collection + Guide
+
+---
+
+### Setup
+1. Create environment in Postman with variable `base_url` = `http://localhost:8080`
+2. After login, copy the token and set environment variable `token`
+3. In every request (except login), add header: `Authorization: Bearer {{token}}`
+
+---
+
+### 1. AUTH
+
+**POST** `{{base_url}}/api/auth/login`
+```json
+{
+  "email": "admin@staynest.com",
+  "password": "Admin@123"
+}
+```
+> Copy token from response → set as `token` env variable
+
+---
+
+### 2. USERS
+
+**POST** `{{base_url}}/api/users`
+```json
+{
+  "name": "John Doe",
+  "role": "Admin",
+  "email": "admin@staynest.com",
+  "password": "Admin@123",
+  "phone": "9876543210",
+  "userStatus": "Active"
+}
+```
+
+**GET** `{{base_url}}/api/users`
+
+**GET** `{{base_url}}/api/users/1`
+
+**PUT** `{{base_url}}/api/users/1`
+```json
+{
+  "name": "John Updated",
+  "role": "Admin",
+  "email": "admin@staynest.com",
+  "password": "",
+  "phone": "9876543210",
+  "userStatus": "Active"
+}
+```
+
+**DELETE** `{{base_url}}/api/users/1`
+
+---
+
+### 3. GUEST PROFILE
+
+**POST** `{{base_url}}/api/guests`
+```json
+{
+  "userId": 1,
+  "nationality": "Indian",
+  "idDocumentType": "Passport",
+  "idNumber": "P1234567",
+  "preferencesJson": "{\"floor\":\"high\",\"pillow\":\"soft\"}",
+  "loyaltyTier": "Gold",
+  "status": "Active"
+}
+```
+
+**GET** `{{base_url}}/api/guests`
+
+**GET** `{{base_url}}/api/guests/1`
+
+**GET** `{{base_url}}/api/guests/user/1`
+
+**PUT** `{{base_url}}/api/guests/1`
+```json
+{
+  "nationality": "Indian",
+  "idDocumentType": "Passport",
+  "idNumber": "P1234567",
+  "preferencesJson": "{\"floor\":\"low\"}",
+  "loyaltyTier": "Platinum",
+  "status": "Active"
+}
+```
+
+**DELETE** `{{base_url}}/api/guests/1`
+
+---
+
+### 4. ROOM TYPE
+
+**POST** `{{base_url}}/api/room-types`
+```json
+{
+  "name": "Deluxe",
+  "bedConfiguration": "King Bed",
+  "maxOccupancy": 2,
+  "baseRate": 5000,
+  "amenitiesList": ["WiFi", "AC", "Mini Bar"],
+  "roomTypeStatus": "Active"
+}
+```
+
+**GET** `{{base_url}}/api/room-types`
+
+**GET** `{{base_url}}/api/room-types/1`
+
+**GET** `{{base_url}}/api/room-types/status/Active`
+
+**PUT** `{{base_url}}/api/room-types/1`
+```json
+{
+  "name": "Suite",
+  "bedConfiguration": "Twin Bed",
+  "maxOccupancy": 3,
+  "baseRate": 8000,
+  "amenitiesList": ["WiFi", "AC", "Jacuzzi"],
+  "roomTypeStatus": "Active"
+}
+```
+
+**DELETE** `{{base_url}}/api/room-types/1`
+
+---
+
+### 5. ROOM
+
+**POST** `{{base_url}}/api/rooms`
+```json
+{
+  "roomNumber": 101,
+  "floor": 1,
+  "roomTypeId": 1,
+  "roomStatus": "Available"
+}
+```
+
+**GET** `{{base_url}}/api/rooms`
+
+**GET** `{{base_url}}/api/rooms/1`
+
+**GET** `{{base_url}}/api/rooms/status/Available`
+
+**GET** `{{base_url}}/api/rooms/room-type/1`
+
+**PUT** `{{base_url}}/api/rooms/1`
+```json
+{
+  "roomNumber": 101,
+  "floor": 1,
+  "roomTypeId": 1,
+  "roomStatus": "Maintenance"
+}
+```
+
+**DELETE** `{{base_url}}/api/rooms/1`
+
+---
+
+### 6. RATE PLAN
+
+**POST** `{{base_url}}/api/rate-plans`
+```json
+{
+  "roomTypeId": 1,
+  "ratePlanType": "Corporate",
+  "pricePerNight": 4500,
+  "validFrom": "2025-01-01",
+  "validTo": "2025-12-31",
+  "mealPlanIncluded": true,
+  "ratePlanStatus": "Active"
+}
+```
+
+**GET** `{{base_url}}/api/rate-plans`
+
+**GET** `{{base_url}}/api/rate-plans/1`
+
+**GET** `{{base_url}}/api/rate-plans/room-type/1`
+
+**PUT** `{{base_url}}/api/rate-plans/1`
+```json
+{
+  "roomTypeId": 1,
+  "ratePlanType": "Seasonal",
+  "pricePerNight": 3500,
+  "validFrom": "2025-06-01",
+  "validTo": "2025-08-31",
+  "mealPlanIncluded": false,
+  "ratePlanStatus": "Active"
+}
+```
+
+**DELETE** `{{base_url}}/api/rate-plans/1`
+
+---
+
+### 7. RESERVATION
+
+**POST** `{{base_url}}/api/reservations`
+```json
+{
+  "guestId": 1,
+  "roomTypeId": 1,
+  "ratePlanId": 1,
+  "checkInDate": "2025-07-01",
+  "checkOutDate": "2025-07-05",
+  "nights": 4,
+  "adults": 2,
+  "children": 0,
+  "totalAmount": 18000,
+  "bookingChannel": "Direct"
+}
+```
+
+**GET** `{{base_url}}/api/reservations`
+
+**GET** `{{base_url}}/api/reservations/1`
+
+**GET** `{{base_url}}/api/reservations/guest/1`
+
+**GET** `{{base_url}}/api/reservations/status/Confirmed`
+
+**PUT** `{{base_url}}/api/reservations/1`
+```json
+{
+  "guestId": 1,
+  "roomTypeId": 1,
+  "ratePlanId": 1,
+  "checkInDate": "2025-07-02",
+  "checkOutDate": "2025-07-06",
+  "nights": 4,
+  "adults": 2,
+  "children": 1,
+  "totalAmount": 18000,
+  "bookingChannel": "Direct",
+  "status": "Confirmed"
+}
+```
+
+**PATCH** `{{base_url}}/api/reservations/1/cancel`
+
+**DELETE** `{{base_url}}/api/reservations/1`
+
+---
+
+### 8. STAY RECORD
+
+**POST** `{{base_url}}/api/stays/check-in`
+```json
+{
+  "reservationId": 1,
+  "guestId": 1,
+  "assignedRoomId": 1
+}
+```
+
+**GET** `{{base_url}}/api/stays`
+
+**GET** `{{base_url}}/api/stays/1`
+
+**GET** `{{base_url}}/api/stays/reservation/1`
+
+**GET** `{{base_url}}/api/stays/status/Active`
+
+**PUT** `{{base_url}}/api/stays/1`
+```json
+{
+  "folioBalance": 5000,
+  "status": "Active"
+}
+```
+
+**PATCH** `{{base_url}}/api/stays/1/check-out`
+
+**DELETE** `{{base_url}}/api/stays/1`
+
+---
+
+### 9. FOLIO ITEM
+
+**POST** `{{base_url}}/api/folio-items`
+```json
+{
+  "stayId": 1,
+  "chargeType": "FBCharge",
+  "description": "Room Service - Dinner",
+  "amount": 1500,
+  "postedBy": 1
+}
+```
+
+**GET** `{{base_url}}/api/folio-items/1`
+
+**GET** `{{base_url}}/api/folio-items/stay/1`
+
+**DELETE** `{{base_url}}/api/folio-items/1`
+
+---
+
+### 10. HOUSEKEEPING
+
+**POST** `{{base_url}}/api/housekeeping`
+```json
+{
+  "roomId": 1,
+  "taskType": "Checkout",
+  "assignedToId": 1
+}
+```
+
+**GET** `{{base_url}}/api/housekeeping`
+
+**GET** `{{base_url}}/api/housekeeping/1`
+
+**GET** `{{base_url}}/api/housekeeping/room/1`
+
+**GET** `{{base_url}}/api/housekeeping/status/Pending`
+
+**PUT** `{{base_url}}/api/housekeeping/1`
+```json
+{
+  "taskType": "DeepClean",
+  "status": "InProgress"
+}
+```
+
+**PATCH** `{{base_url}}/api/housekeeping/1/complete`
+
+**DELETE** `{{base_url}}/api/housekeeping/1`
+
+---
+
+### 11. MAINTENANCE
+
+**POST** `{{base_url}}/api/maintenance`
+```json
+{
+  "roomId": 1,
+  "reportedBy": 1,
+  "issueDescription": "AC not working",
+  "priority": "High"
+}
+```
+
+**GET** `{{base_url}}/api/maintenance`
+
+**GET** `{{base_url}}/api/maintenance/1`
+
+**GET** `{{base_url}}/api/maintenance/room/1`
+
+**GET** `{{base_url}}/api/maintenance/status/Open`
+
+**PUT** `{{base_url}}/api/maintenance/1`
+```json
+{
+  "issueDescription": "AC not working - compressor issue",
+  "priority": "Urgent",
+  "status": "InProgress"
+}
+```
+
+**PATCH** `{{base_url}}/api/maintenance/1/resolve`
+
+**DELETE** `{{base_url}}/api/maintenance/1`
+
+---
+
+### 12. MENU ITEM
+
+**POST** `{{base_url}}/api/menu`
+```json
+{
+  "name": "Masala Dosa",
+  "category": "Breakfast",
+  "price": 150,
+  "isAvailable": true,
+  "dietaryTags": ["Vegetarian", "Gluten-Free"]
+}
+```
+
+**GET** `{{base_url}}/api/menu`
+
+**GET** `{{base_url}}/api/menu/1`
+
+**GET** `{{base_url}}/api/menu/available?isAvailable=true`
+
+**PUT** `{{base_url}}/api/menu/1`
+```json
+{
+  "name": "Masala Dosa",
+  "category": "Breakfast",
+  "price": 180,
+  "isAvailable": true,
+  "dietaryTags": ["Vegetarian"]
+}
+```
+
+**DELETE** `{{base_url}}/api/menu/1`
+
+---
+
+### 13. F&B ORDER
+
+**POST** `{{base_url}}/api/fb`
+```json
+{
+  "stayId": 1,
+  "tableNumber": 5,
+  "orderType": "DineIn",
+  "itemsJson": "[{\"itemId\":1,\"name\":\"Masala Dosa\",\"qty\":2}]",
+  "totalAmount": 300
+}
+```
+
+**GET** `{{base_url}}/api/fb`
+
+**GET** `{{base_url}}/api/fb/1`
+
+**GET** `{{base_url}}/api/fb/stay/1`
+
+**GET** `{{base_url}}/api/fb/status/Placed`
+
+**PATCH** `{{base_url}}/api/fb/1/status?status=Served`
+
+**DELETE** `{{base_url}}/api/fb/1`
+
+---
+
+### 14. DINING RESERVATION
+
+**POST** `{{base_url}}/api/dining`
+```json
+{
+  "guestId": 1,
+  "stayId": 1,
+  "restaurantOutlet": "Rooftop Grill",
+  "date": "2025-07-02",
+  "time": "19:30:00",
+  "covers": 2
+}
+```
+
+**GET** `{{base_url}}/api/dining`
+
+**GET** `{{base_url}}/api/dining/1`
+
+**GET** `{{base_url}}/api/dining/guest/1`
+
+**GET** `{{base_url}}/api/dining/status/Confirmed`
+
+**PUT** `{{base_url}}/api/dining/1`
+```json
+{
+  "restaurantOutlet": "Rooftop Grill",
+  "date": "2025-07-03",
+  "time": "20:00:00",
+  "covers": 4,
+  "status": "Confirmed"
+}
+```
+
+**DELETE** `{{base_url}}/api/dining/1`
+
+---
+
+### 15. REPORTS
+
+**POST** `{{base_url}}/api/reports`
+```json
+{
+  "scope": "Property",
+  "metricsJson": "{\"occupancyRate\":85,\"ADR\":4500,\"RevPAR\":3825,\"FBRevenue\":120000}"
+}
+```
+
+**GET** `{{base_url}}/api/reports`
+
+**GET** `{{base_url}}/api/reports/1`
+
+**GET** `{{base_url}}/api/reports/scope/Property`
+
+**DELETE** `{{base_url}}/api/reports/1`
+
+---
+
+### 16. NOTIFICATIONS
+
+**POST** `{{base_url}}/api/notifications`
+```json
+{
+  "userId": 1,
+  "message": "Your reservation is confirmed for July 1st",
+  "category": "Reservation"
+}
+```
+
+**GET** `{{base_url}}/api/notifications`
+
+**GET** `{{base_url}}/api/notifications/1`
+
+**GET** `{{base_url}}/api/notifications/user/1`
+
+**GET** `{{base_url}}/api/notifications/status/Unread`
+
+**PATCH** `{{base_url}}/api/notifications/1/read`
+
+**DELETE** `{{base_url}}/api/notifications/1`
+
+---
+
+### 17. AUDIT LOGS
+
+**GET** `{{base_url}}/api/audit-logs`
+
+**GET** `{{base_url}}/api/audit-logs/user/1`
+
+---
+
+### Recommended Test Order
+1. `POST /api/users` → create admin user (no auth needed for first user)
+2. `POST /api/auth/login` → get token
+3. `POST /api/guests` → create guest profile (uses userId from step 1)
+4. `POST /api/room-types` → create room type
+5. `POST /api/rooms` → create room (uses roomTypeId)
+6. `POST /api/rate-plans` → create rate plan (uses roomTypeId)
+7. `POST /api/reservations` → create reservation (uses guestId, roomTypeId, ratePlanId)
+8. `POST /api/stays/check-in` → check in (uses reservationId, guestId, roomId)
+9. `POST /api/folio-items` → post charges (uses stayId)
+10. `PATCH /api/stays/1/check-out` → check out
+
