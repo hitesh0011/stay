@@ -1,0 +1,3319 @@
+// ===== USER SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.UserRequestDTO;
+import com.staynest.demo.dto.UserResponseDTO;
+import java.util.List;
+
+public interface UserService {
+    UserResponseDTO createUser(UserRequestDTO dto);
+    UserResponseDTO getUserById(Integer id);
+    UserResponseDTO getUserByEmail(String email);
+    List<UserResponseDTO> getAllUsers();
+    UserResponseDTO updateUser(Integer id, UserRequestDTO dto);
+    void deleteUser(Integer id);
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.UserRequestDTO;
+import com.staynest.demo.dto.UserResponseDTO;
+import com.staynest.demo.entities.Users;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.UserService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class UserServiceImpl implements UserService {
+
+    private final UsersRepository usersRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    public UserResponseDTO createUser(UserRequestDTO dto) {
+        Users user = new Users();
+        user.setName(dto.getName());
+        user.setRole(dto.getRole());
+        user.setEmail(dto.getEmail());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        user.setPhone(dto.getPhone());
+        user.setUserStatus(dto.getUserStatus());
+        return mapToResponse(usersRepository.save(user));
+    }
+
+    @Override
+    public UserResponseDTO getUserById(Integer id) {
+        Users user = usersRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        return mapToResponse(user);
+    }
+
+    @Override
+    public UserResponseDTO getUserByEmail(String email) {
+        Users user = usersRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+        return mapToResponse(user);
+    }
+
+    @Override
+    public List<UserResponseDTO> getAllUsers() {
+        return usersRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public UserResponseDTO updateUser(Integer id, UserRequestDTO dto) {
+        Users user = usersRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        user.setName(dto.getName());
+        user.setRole(dto.getRole());
+        user.setEmail(dto.getEmail());
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
+        user.setPhone(dto.getPhone());
+        user.setUserStatus(dto.getUserStatus());
+        return mapToResponse(usersRepository.save(user));
+    }
+
+    @Override
+    public void deleteUser(Integer id) {
+        Users user = usersRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        usersRepository.delete(user);
+    }
+
+    private UserResponseDTO mapToResponse(Users user) {
+        return new UserResponseDTO(user.getUserId(), user.getName(), user.getRole(),
+                user.getEmail(), user.getPhone(), user.getUserStatus());
+    }
+}
+java// ===== AUDIT LOG SERVICE (read-only; written internally by AOP) =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.AuditLogResponseDTO;
+import java.util.List;
+
+public interface AuditLogService {
+    AuditLogResponseDTO createLog(Integer userId, String action, String entityType);
+    List<AuditLogResponseDTO> getLogsByUser(Integer userId);
+    List<AuditLogResponseDTO> getAllLogs();
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.AuditLogResponseDTO;
+import com.staynest.demo.entities.AuditLog;
+import com.staynest.demo.entities.Users;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.AuditLogRepository;
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.AuditLogService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class AuditLogServiceImpl implements AuditLogService {
+
+    private final AuditLogRepository auditLogRepository;
+    private final UsersRepository usersRepository;
+
+    @Override
+    public AuditLogResponseDTO createLog(Integer userId, String action, String entityType) {
+        Users user = usersRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        AuditLog log = new AuditLog();
+        log.setUser(user);
+        log.setAction(action);
+        log.setEntityType(entityType);
+        log.setLocalDateTime(LocalDateTime.now());
+        return mapToResponse(auditLogRepository.save(log));
+    }
+
+    @Override
+    public List<AuditLogResponseDTO> getLogsByUser(Integer userId) {
+        return auditLogRepository.findByUser_UserId(userId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<AuditLogResponseDTO> getAllLogs() {
+        return auditLogRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    private AuditLogResponseDTO mapToResponse(AuditLog log) {
+        return new AuditLogResponseDTO(log.getAuditId(), log.getUser().getUserId(),
+                log.getUser().getName(), log.getAction(), log.getEntityType(), log.getLocalDateTime());
+    }
+}
+java// ===== GUEST PROFILE SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.GuestProfileRequestDTO;
+import com.staynest.demo.dto.GuestProfileResponseDTO;
+import java.util.List;
+
+public interface GuestProfileService {
+    GuestProfileResponseDTO createGuestProfile(GuestProfileRequestDTO dto);
+    GuestProfileResponseDTO getGuestById(Integer id);
+    GuestProfileResponseDTO getGuestByUserId(Integer userId);
+    List<GuestProfileResponseDTO> getAllGuests();
+    GuestProfileResponseDTO updateGuestProfile(Integer id, GuestProfileRequestDTO dto);
+    void deleteGuestProfile(Integer id);
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.GuestProfileRequestDTO;
+import com.staynest.demo.dto.GuestProfileResponseDTO;
+import com.staynest.demo.entities.GuestProfile;
+import com.staynest.demo.entities.Users;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.GuestProfileRepository;
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.GuestProfileService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class GuestProfileServiceImpl implements GuestProfileService {
+
+    private final GuestProfileRepository guestProfileRepository;
+    private final UsersRepository usersRepository;
+
+    @Override
+    public GuestProfileResponseDTO createGuestProfile(GuestProfileRequestDTO dto) {
+        Users user = usersRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getUserId()));
+        GuestProfile guest = new GuestProfile();
+        guest.setUsers(user);
+        guest.setNationality(dto.getNationality());
+        guest.setIdDocumentType(dto.getIdDocumentType());
+        guest.setIdNumber(dto.getIdNumber());
+        guest.setPreferencesJson(dto.getPreferencesJson());
+        guest.setLoyaltyTier(dto.getLoyaltyTier());
+        guest.setStatus(dto.getStatus());
+        return mapToResponse(guestProfileRepository.save(guest));
+    }
+
+    @Override
+    public GuestProfileResponseDTO getGuestById(Integer id) {
+        GuestProfile guest = guestProfileRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + id));
+        return mapToResponse(guest);
+    }
+
+    @Override
+    public GuestProfileResponseDTO getGuestByUserId(Integer userId) {
+        GuestProfile guest = guestProfileRepository.findByUsers_UserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Guest not found for userId: " + userId));
+        return mapToResponse(guest);
+    }
+
+    @Override
+    public List<GuestProfileResponseDTO> getAllGuests() {
+        return guestProfileRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public GuestProfileResponseDTO updateGuestProfile(Integer id, GuestProfileRequestDTO dto) {
+        GuestProfile guest = guestProfileRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + id));
+        guest.setNationality(dto.getNationality());
+        guest.setIdDocumentType(dto.getIdDocumentType());
+        guest.setIdNumber(dto.getIdNumber());
+        guest.setPreferencesJson(dto.getPreferencesJson());
+        guest.setLoyaltyTier(dto.getLoyaltyTier());
+        guest.setStatus(dto.getStatus());
+        return mapToResponse(guestProfileRepository.save(guest));
+    }
+
+    @Override
+    public void deleteGuestProfile(Integer id) {
+        GuestProfile guest = guestProfileRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + id));
+        guestProfileRepository.delete(guest);
+    }
+
+    private GuestProfileResponseDTO mapToResponse(GuestProfile guest) {
+        return new GuestProfileResponseDTO(guest.getGuestId(), guest.getUsers().getUserId(),
+                guest.getUsers().getName(), guest.getUsers().getEmail(), guest.getNationality(),
+                guest.getIdDocumentType(), guest.getIdNumber(), guest.getPreferencesJson(),
+                guest.getLoyaltyTier(), guest.getStatus());
+    }
+}
+java// ===== ROOM TYPE SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.RoomTypeRequestDTO;
+import com.staynest.demo.dto.RoomTypeResponseDTO;
+import com.staynest.demo.enums.RoomTypeStatus;
+import java.util.List;
+
+public interface RoomTypeService {
+    RoomTypeResponseDTO createRoomType(RoomTypeRequestDTO dto);
+    RoomTypeResponseDTO getRoomTypeById(Integer id);
+    List<RoomTypeResponseDTO> getAllRoomTypes();
+    List<RoomTypeResponseDTO> getRoomTypesByStatus(RoomTypeStatus status);
+    RoomTypeResponseDTO updateRoomType(Integer id, RoomTypeRequestDTO dto);
+    void deleteRoomType(Integer id);
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.RoomTypeRequestDTO;
+import com.staynest.demo.dto.RoomTypeResponseDTO;
+import com.staynest.demo.entities.RoomType;
+import com.staynest.demo.enums.RoomTypeStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.RoomTypeRepository;
+import com.staynest.demo.service.RoomTypeService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class RoomTypeServiceImpl implements RoomTypeService {
+
+    private final RoomTypeRepository roomTypeRepository;
+
+    @Override
+    public RoomTypeResponseDTO createRoomType(RoomTypeRequestDTO dto) {
+        RoomType roomType = new RoomType();
+        roomType.setName(dto.getName());
+        roomType.setBedConfiguration(dto.getBedConfiguration());
+        roomType.setMaxOccupancy(dto.getMaxOccupancy());
+        roomType.setBaseRate(dto.getBaseRate());
+        roomType.setAmenitiesList(dto.getAmenitiesList());
+        roomType.setRoomTypeStatus(dto.getRoomTypeStatus());
+        return mapToResponse(roomTypeRepository.save(roomType));
+    }
+
+    @Override
+    public RoomTypeResponseDTO getRoomTypeById(Integer id) {
+        RoomType roomType = roomTypeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + id));
+        return mapToResponse(roomType);
+    }
+
+    @Override
+    public List<RoomTypeResponseDTO> getAllRoomTypes() {
+        return roomTypeRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RoomTypeResponseDTO> getRoomTypesByStatus(RoomTypeStatus status) {
+        return roomTypeRepository.findByRoomTypeStatus(status).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public RoomTypeResponseDTO updateRoomType(Integer id, RoomTypeRequestDTO dto) {
+        RoomType roomType = roomTypeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + id));
+        roomType.setName(dto.getName());
+        roomType.setBedConfiguration(dto.getBedConfiguration());
+        roomType.setMaxOccupancy(dto.getMaxOccupancy());
+        roomType.setBaseRate(dto.getBaseRate());
+        roomType.setAmenitiesList(dto.getAmenitiesList());
+        roomType.setRoomTypeStatus(dto.getRoomTypeStatus());
+        return mapToResponse(roomTypeRepository.save(roomType));
+    }
+
+    @Override
+    public void deleteRoomType(Integer id) {
+        RoomType roomType = roomTypeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + id));
+        roomTypeRepository.delete(roomType);
+    }
+
+    private RoomTypeResponseDTO mapToResponse(RoomType rt) {
+        return new RoomTypeResponseDTO(rt.getRoomTypeId(), rt.getName(), rt.getBedConfiguration(),
+                rt.getMaxOccupancy(), rt.getBaseRate(), rt.getAmenitiesList(), rt.getRoomTypeStatus());
+    }
+}
+java// ===== ROOM SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.RoomRequestDTO;
+import com.staynest.demo.dto.RoomResponseDTO;
+import com.staynest.demo.enums.RoomStatus;
+import java.util.List;
+
+public interface RoomService {
+    RoomResponseDTO createRoom(RoomRequestDTO dto);
+    RoomResponseDTO getRoomById(Integer id);
+    List<RoomResponseDTO> getAllRooms();
+    List<RoomResponseDTO> getRoomsByStatus(RoomStatus status);
+    List<RoomResponseDTO> getRoomsByRoomType(Integer roomTypeId);
+    RoomResponseDTO updateRoom(Integer id, RoomRequestDTO dto);
+    void deleteRoom(Integer id);
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.RoomRequestDTO;
+import com.staynest.demo.dto.RoomResponseDTO;
+import com.staynest.demo.entities.Room;
+import com.staynest.demo.entities.RoomType;
+import com.staynest.demo.enums.RoomStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.RoomRepository;
+import com.staynest.demo.repositories.RoomTypeRepository;
+import com.staynest.demo.service.RoomService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class RoomServiceImpl implements RoomService {
+
+    private final RoomRepository roomRepository;
+    private final RoomTypeRepository roomTypeRepository;
+
+    @Override
+    public RoomResponseDTO createRoom(RoomRequestDTO dto) {
+        RoomType roomType = roomTypeRepository.findById(dto.getRoomTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + dto.getRoomTypeId()));
+        Room room = new Room();
+        room.setRoomNumber(dto.getRoomNumber());
+        room.setFloor(dto.getFloor());
+        room.setRoomType(roomType);
+        room.setRoomStatus(dto.getRoomStatus());
+        return mapToResponse(roomRepository.save(room));
+    }
+
+    @Override
+    public RoomResponseDTO getRoomById(Integer id) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+        return mapToResponse(room);
+    }
+
+    @Override
+    public List<RoomResponseDTO> getAllRooms() {
+        return roomRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RoomResponseDTO> getRoomsByStatus(RoomStatus status) {
+        return roomRepository.findByRoomStatus(status).stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RoomResponseDTO> getRoomsByRoomType(Integer roomTypeId) {
+        return roomRepository.findByRoomType_RoomTypeId(roomTypeId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public RoomResponseDTO updateRoom(Integer id, RoomRequestDTO dto) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+        RoomType roomType = roomTypeRepository.findById(dto.getRoomTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + dto.getRoomTypeId()));
+        room.setRoomNumber(dto.getRoomNumber());
+        room.setFloor(dto.getFloor());
+        room.setRoomType(roomType);
+        room.setRoomStatus(dto.getRoomStatus());
+        return mapToResponse(roomRepository.save(room));
+    }
+
+    @Override
+    public void deleteRoom(Integer id) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+        roomRepository.delete(room);
+    }
+
+    private RoomResponseDTO mapToResponse(Room room) {
+        return new RoomResponseDTO(room.getRoomId(), room.getRoomNumber(), room.getFloor(),
+                room.getRoomType().getRoomTypeId(), room.getRoomType().getName().toString(), room.getRoomStatus());
+    }
+}
+java// ===== RATE PLAN SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.RatePlanRequestDTO;
+import com.staynest.demo.dto.RatePlanResponseDTO;
+import java.util.List;
+
+public interface RatePlanService {
+    RatePlanResponseDTO createRatePlan(RatePlanRequestDTO dto);
+    RatePlanResponseDTO getRatePlanById(Integer id);
+    List<RatePlanResponseDTO> getAllRatePlans();
+    List<RatePlanResponseDTO> getRatePlansByRoomType(Integer roomTypeId);
+    RatePlanResponseDTO updateRatePlan(Integer id, RatePlanRequestDTO dto);
+    void deleteRatePlan(Integer id);
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.RatePlanRequestDTO;
+import com.staynest.demo.dto.RatePlanResponseDTO;
+import com.staynest.demo.entities.RatePlan;
+import com.staynest.demo.entities.RoomType;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.RatePlanRepository;
+import com.staynest.demo.repositories.RoomTypeRepository;
+import com.staynest.demo.service.RatePlanService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class RatePlanServiceImpl implements RatePlanService {
+
+    private final RatePlanRepository ratePlanRepository;
+    private final RoomTypeRepository roomTypeRepository;
+
+    @Override
+    public RatePlanResponseDTO createRatePlan(RatePlanRequestDTO dto) {
+        RoomType roomType = roomTypeRepository.findById(dto.getRoomTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + dto.getRoomTypeId()));
+        RatePlan ratePlan = new RatePlan();
+        ratePlan.setRoomType(roomType);
+        ratePlan.setRatePlanType(dto.getRatePlanType());
+        ratePlan.setPricePerNight(dto.getPricePerNight());
+        ratePlan.setValidFrom(dto.getValidFrom());
+        ratePlan.setValidTo(dto.getValidTo());
+        ratePlan.setMealPlanIncluded(dto.getMealPlanIncluded());
+        ratePlan.setRatePlanStatus(dto.getRatePlanStatus());
+        return mapToResponse(ratePlanRepository.save(ratePlan));
+    }
+
+    @Override
+    public RatePlanResponseDTO getRatePlanById(Integer id) {
+        RatePlan ratePlan = ratePlanRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("RatePlan not found with id: " + id));
+        return mapToResponse(ratePlan);
+    }
+
+    @Override
+    public List<RatePlanResponseDTO> getAllRatePlans() {
+        return ratePlanRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RatePlanResponseDTO> getRatePlansByRoomType(Integer roomTypeId) {
+        return ratePlanRepository.findByRoomType_RoomTypeId(roomTypeId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public RatePlanResponseDTO updateRatePlan(Integer id, RatePlanRequestDTO dto) {
+        RatePlan ratePlan = ratePlanRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("RatePlan not found with id: " + id));
+        RoomType roomType = roomTypeRepository.findById(dto.getRoomTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + dto.getRoomTypeId()));
+        ratePlan.setRoomType(roomType);
+        ratePlan.setRatePlanType(dto.getRatePlanType());
+        ratePlan.setPricePerNight(dto.getPricePerNight());
+        ratePlan.setValidFrom(dto.getValidFrom());
+        ratePlan.setValidTo(dto.getValidTo());
+        ratePlan.setMealPlanIncluded(dto.getMealPlanIncluded());
+        ratePlan.setRatePlanStatus(dto.getRatePlanStatus());
+        return mapToResponse(ratePlanRepository.save(ratePlan));
+    }
+
+    @Override
+    public void deleteRatePlan(Integer id) {
+        RatePlan ratePlan = ratePlanRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("RatePlan not found with id: " + id));
+        ratePlanRepository.delete(ratePlan);
+    }
+
+    private RatePlanResponseDTO mapToResponse(RatePlan rp) {
+        return new RatePlanResponseDTO(rp.getRatePlanId(), rp.getRoomType().getRoomTypeId(),
+                rp.getRoomType().getName().toString(), rp.getRatePlanType(), rp.getPricePerNight(),
+                rp.getValidFrom(), rp.getValidTo(), rp.getMealPlanIncluded(), rp.getRatePlanStatus());
+    }
+}
+java// ===== RESERVATION SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.ReservationRequestDTO;
+import com.staynest.demo.dto.ReservationResponseDTO;
+import com.staynest.demo.enums.ReservationStatus;
+import java.util.List;
+
+public interface ReservationService {
+    ReservationResponseDTO createReservation(ReservationRequestDTO dto);
+    ReservationResponseDTO getReservationById(Integer id);
+    List<ReservationResponseDTO> getAllReservations();
+    List<ReservationResponseDTO> getReservationsByGuest(Integer guestId);
+    List<ReservationResponseDTO> getReservationsByStatus(ReservationStatus status);
+    ReservationResponseDTO updateReservation(Integer id, ReservationRequestDTO dto);
+    ReservationResponseDTO cancelReservation(Integer id);
+    void deleteReservation(Integer id);
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.ReservationRequestDTO;
+import com.staynest.demo.dto.ReservationResponseDTO;
+import com.staynest.demo.entities.GuestProfile;
+import com.staynest.demo.entities.RatePlan;
+import com.staynest.demo.entities.Reservation;
+import com.staynest.demo.entities.RoomType;
+import com.staynest.demo.enums.ReservationStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.GuestProfileRepository;
+import com.staynest.demo.repositories.RatePlanRepository;
+import com.staynest.demo.repositories.ReservationRepository;
+import com.staynest.demo.repositories.RoomTypeRepository;
+import com.staynest.demo.service.ReservationService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class ReservationServiceImpl implements ReservationService {
+
+    private final ReservationRepository reservationRepository;
+    private final GuestProfileRepository guestProfileRepository;
+    private final RoomTypeRepository roomTypeRepository;
+    private final RatePlanRepository ratePlanRepository;
+
+    @Override
+    public ReservationResponseDTO createReservation(ReservationRequestDTO dto) {
+        Reservation res = new Reservation();
+        applyDtoToEntity(res, dto);
+        res.setStatus(ReservationStatus.Confirmed);
+        return mapToResponse(reservationRepository.save(res));
+    }
+
+    @Override
+    public ReservationResponseDTO getReservationById(Integer id) {
+        Reservation res = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+        return mapToResponse(res);
+    }
+
+    @Override
+    public List<ReservationResponseDTO> getAllReservations() {
+        return reservationRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ReservationResponseDTO> getReservationsByGuest(Integer guestId) {
+        return reservationRepository.findByGuest_GuestId(guestId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ReservationResponseDTO> getReservationsByStatus(ReservationStatus status) {
+        return reservationRepository.findByStatus(status).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public ReservationResponseDTO updateReservation(Integer id, ReservationRequestDTO dto) {
+        Reservation res = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+        applyDtoToEntity(res, dto);
+        if (dto.getStatus() != null) res.setStatus(dto.getStatus());
+        return mapToResponse(reservationRepository.save(res));
+    }
+
+    @Override
+    public ReservationResponseDTO cancelReservation(Integer id) {
+        Reservation res = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+        res.setStatus(ReservationStatus.Cancelled);
+        return mapToResponse(reservationRepository.save(res));
+    }
+
+    @Override
+    public void deleteReservation(Integer id) {
+        Reservation res = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+        reservationRepository.delete(res);
+    }
+
+    private void applyDtoToEntity(Reservation res, ReservationRequestDTO dto) {
+        GuestProfile guest = guestProfileRepository.findById(dto.getGuestId())
+                .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + dto.getGuestId()));
+        RoomType roomType = roomTypeRepository.findById(dto.getRoomTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + dto.getRoomTypeId()));
+        RatePlan ratePlan = ratePlanRepository.findById(dto.getRatePlanId())
+                .orElseThrow(() -> new ResourceNotFoundException("RatePlan not found with id: " + dto.getRatePlanId()));
+        res.setGuest(guest);
+        res.setRoomType(roomType);
+        res.setRatePlan(ratePlan);
+        res.setCheckInDate(dto.getCheckInDate());
+        res.setCheckOutDate(dto.getCheckOutDate());
+        res.setNights(dto.getNights());
+        res.setAdults(dto.getAdults());
+        res.setChildren(dto.getChildren());
+        res.setTotalAmount(dto.getTotalAmount());
+        res.setBookingChannel(dto.getBookingChannel());
+    }
+
+    private ReservationResponseDTO mapToResponse(Reservation res) {
+        return new ReservationResponseDTO(res.getReservationId(), res.getGuest().getGuestId(),
+                res.getGuest().getUsers().getName(), res.getRoomType().getRoomTypeId(),
+                res.getRoomType().getName().toString(), res.getRatePlan().getRatePlanId(),
+                res.getCheckInDate(), res.getCheckOutDate(), res.getNights(), res.getAdults(),
+                res.getChildren(), res.getTotalAmount(), res.getBookingChannel(), res.getStatus());
+    }
+}
+java// ===== STAY RECORD SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.StayRecordRequestDTO;
+import com.staynest.demo.dto.StayRecordResponseDTO;
+import com.staynest.demo.enums.StayStatus;
+import java.util.List;
+
+public interface StayRecordService {
+    StayRecordResponseDTO checkIn(StayRecordRequestDTO dto);
+    StayRecordResponseDTO getStayById(Integer id);
+    StayRecordResponseDTO getStayByReservation(Integer reservationId);
+    List<StayRecordResponseDTO> getAllStays();
+    List<StayRecordResponseDTO> getStaysByStatus(StayStatus status);
+    StayRecordResponseDTO updateStay(Integer id, StayRecordRequestDTO dto);
+    StayRecordResponseDTO checkOut(Integer id);
+    void deleteStay(Integer id);
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.StayRecordRequestDTO;
+import com.staynest.demo.dto.StayRecordResponseDTO;
+import com.staynest.demo.entities.GuestProfile;
+import com.staynest.demo.entities.Reservation;
+import com.staynest.demo.entities.Room;
+import com.staynest.demo.entities.StayRecord;
+import com.staynest.demo.enums.RoomStatus;
+import com.staynest.demo.enums.StayStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.GuestProfileRepository;
+import com.staynest.demo.repositories.ReservationRepository;
+import com.staynest.demo.repositories.RoomRepository;
+import com.staynest.demo.repositories.StayRecordRepository;
+import com.staynest.demo.service.StayRecordService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class StayRecordServiceImpl implements StayRecordService {
+
+    private final StayRecordRepository stayRecordRepository;
+    private final ReservationRepository reservationRepository;
+    private final GuestProfileRepository guestProfileRepository;
+    private final RoomRepository roomRepository;
+
+    @Override
+    public StayRecordResponseDTO checkIn(StayRecordRequestDTO dto) {
+        Reservation reservation = reservationRepository.findById(dto.getReservationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + dto.getReservationId()));
+        GuestProfile guest = guestProfileRepository.findById(dto.getGuestId())
+                .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + dto.getGuestId()));
+        Room room = roomRepository.findById(dto.getAssignedRoomId())
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + dto.getAssignedRoomId()));
+
+        StayRecord stay = new StayRecord();
+        stay.setReservation(reservation);
+        stay.setGuest(guest);
+        stay.setAssignedRoom(room);
+        stay.setActualCheckIn(LocalDateTime.now());
+        stay.setFolioBalance(0);
+        stay.setStatus(StayStatus.Active);
+
+        room.setRoomStatus(RoomStatus.Occupied);
+        roomRepository.save(room);
+
+        return mapToResponse(stayRecordRepository.save(stay));
+    }
+
+    @Override
+    public StayRecordResponseDTO getStayById(Integer id) {
+        StayRecord stay = stayRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found with id: " + id));
+        return mapToResponse(stay);
+    }
+
+    @Override
+    public StayRecordResponseDTO getStayByReservation(Integer reservationId) {
+        StayRecord stay = stayRecordRepository.findByReservation_ReservationId(reservationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found for reservationId: " + reservationId));
+        return mapToResponse(stay);
+    }
+
+    @Override
+    public List<StayRecordResponseDTO> getAllStays() {
+        return stayRecordRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StayRecordResponseDTO> getStaysByStatus(StayStatus status) {
+        return stayRecordRepository.findByStatus(status).stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public StayRecordResponseDTO updateStay(Integer id, StayRecordRequestDTO dto) {
+        StayRecord stay = stayRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found with id: " + id));
+        stay.setFolioBalance(dto.getFolioBalance());
+        if (dto.getStatus() != null) stay.setStatus(dto.getStatus());
+        return mapToResponse(stayRecordRepository.save(stay));
+    }
+
+    @Override
+    public StayRecordResponseDTO checkOut(Integer id) {
+        StayRecord stay = stayRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found with id: " + id));
+        stay.setActualCheckOut(LocalDateTime.now());
+        stay.setStatus(StayStatus.CheckedOut);
+
+        Room room = stay.getAssignedRoom();
+        room.setRoomStatus(RoomStatus.Cleaning);
+        roomRepository.save(room);
+
+        return mapToResponse(stayRecordRepository.save(stay));
+    }
+
+    @Override
+    public void deleteStay(Integer id) {
+        StayRecord stay = stayRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found with id: " + id));
+        stayRecordRepository.delete(stay);
+    }
+
+    private StayRecordResponseDTO mapToResponse(StayRecord s) {
+        return new StayRecordResponseDTO(s.getStayId(), s.getReservation().getReservationId(),
+                s.getGuest().getGuestId(), s.getGuest().getUsers().getName(),
+                s.getAssignedRoom().getRoomId(), s.getAssignedRoom().getRoomNumber(),
+                s.getActualCheckIn(), s.getActualCheckOut(), s.getFolioBalance(), s.getStatus());
+    }
+}
+java// ===== FOLIO ITEM SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.FolioItemRequestDTO;
+import com.staynest.demo.dto.FolioItemResponseDTO;
+import java.util.List;
+
+public interface FolioItemService {
+    FolioItemResponseDTO postCharge(FolioItemRequestDTO dto);
+    FolioItemResponseDTO getFolioItemById(Integer id);
+    List<FolioItemResponseDTO> getItemsByStay(Integer stayId);
+    void deleteFolioItem(Integer id);
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.FolioItemRequestDTO;
+import com.staynest.demo.dto.FolioItemResponseDTO;
+import com.staynest.demo.entities.FolioItem;
+import com.staynest.demo.entities.StayRecord;
+import com.staynest.demo.entities.Users;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.FolioItemRepository;
+import com.staynest.demo.repositories.StayRecordRepository;
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.FolioItemService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class FolioItemServiceImpl implements FolioItemService {
+
+    private final FolioItemRepository folioItemRepository;
+    private final StayRecordRepository stayRecordRepository;
+    private final UsersRepository usersRepository;
+
+    @Override
+    public FolioItemResponseDTO postCharge(FolioItemRequestDTO dto) {
+        StayRecord stay = stayRecordRepository.findById(dto.getStayId())
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found with id: " + dto.getStayId()));
+        Users postedBy = usersRepository.findById(dto.getPostedBy())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getPostedBy()));
+
+        FolioItem item = new FolioItem();
+        item.setStayRecord(stay);
+        item.setChargeType(dto.getChargeType());
+        item.setDescription(dto.getDescription());
+        item.setAmount(dto.getAmount());
+        item.setPostedDate(LocalDateTime.now());
+        item.setPostedBy(postedBy);
+
+        stay.setFolioBalance(stay.getFolioBalance() + dto.getAmount());
+        stayRecordRepository.save(stay);
+
+        return mapToResponse(folioItemRepository.save(item));
+    }
+
+    @Override
+    public FolioItemResponseDTO getFolioItemById(Integer id) {
+        FolioItem item = folioItemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("FolioItem not found with id: " + id));
+        return mapToResponse(item);
+    }
+
+    @Override
+    public List<FolioItemResponseDTO> getItemsByStay(Integer stayId) {
+        return folioItemRepository.findByStayRecord_StayId(stayId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public void deleteFolioItem(Integer id) {
+        FolioItem item = folioItemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("FolioItem not found with id: " + id));
+        folioItemRepository.delete(item);
+    }
+
+    private FolioItemResponseDTO mapToResponse(FolioItem f) {
+        return new FolioItemResponseDTO(f.getFolioItemId(), f.getStayRecord().getStayId(),
+                f.getChargeType(), f.getDescription(), f.getAmount(), f.getPostedDate(),
+                f.getPostedBy().getUserId(), f.getPostedBy().getName());
+    }
+}
+java// ===== HOUSEKEEPING TASK SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.HousekeepingTaskRequestDTO;
+import com.staynest.demo.dto.HousekeepingTaskResponseDTO;
+import com.staynest.demo.enums.TaskStatus;
+import java.util.List;
+
+public interface HousekeepingTaskService {
+    HousekeepingTaskResponseDTO createTask(HousekeepingTaskRequestDTO dto);
+    HousekeepingTaskResponseDTO getTaskById(Integer id);
+    List<HousekeepingTaskResponseDTO> getAllTasks();
+    List<HousekeepingTaskResponseDTO> getTasksByRoom(Integer roomId);
+    List<HousekeepingTaskResponseDTO> getTasksByStatus(TaskStatus status);
+    HousekeepingTaskResponseDTO updateTask(Integer id, HousekeepingTaskRequestDTO dto);
+    HousekeepingTaskResponseDTO completeTask(Integer id);
+    void deleteTask(Integer id);
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.HousekeepingTaskRequestDTO;
+import com.staynest.demo.dto.HousekeepingTaskResponseDTO;
+import com.staynest.demo.entities.HousekeepingTask;
+import com.staynest.demo.entities.Room;
+import com.staynest.demo.entities.Users;
+import com.staynest.demo.enums.RoomStatus;
+import com.staynest.demo.enums.TaskStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.HousekeepingTaskRepository;
+import com.staynest.demo.repositories.RoomRepository;
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.HousekeepingTaskService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class HousekeepingTaskServiceImpl implements HousekeepingTaskService {
+
+    private final HousekeepingTaskRepository housekeepingTaskRepository;
+    private final RoomRepository roomRepository;
+    private final UsersRepository usersRepository;
+
+    @Override
+    public HousekeepingTaskResponseDTO createTask(HousekeepingTaskRequestDTO dto) {
+        Room room = roomRepository.findById(dto.getRoomId())
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + dto.getRoomId()));
+        Users assignedTo = usersRepository.findById(dto.getAssignedToId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getAssignedToId()));
+
+        HousekeepingTask task = new HousekeepingTask();
+        task.setRoom(room);
+        task.setTaskType(dto.getTaskType());
+        task.setAssignedTo(assignedTo);
+        task.setAssignedDate(LocalDateTime.now());
+        task.setStatus(TaskStatus.Pending);
+        return mapToResponse(housekeepingTaskRepository.save(task));
+    }
+
+    @Override
+    public HousekeepingTaskResponseDTO getTaskById(Integer id) {
+        HousekeepingTask task = housekeepingTaskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
+        return mapToResponse(task);
+    }
+
+    @Override
+    public List<HousekeepingTaskResponseDTO> getAllTasks() {
+        return housekeepingTaskRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<HousekeepingTaskResponseDTO> getTasksByRoom(Integer roomId) {
+        return housekeepingTaskRepository.findByRoom_RoomId(roomId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<HousekeepingTaskResponseDTO> getTasksByStatus(TaskStatus status) {
+        return housekeepingTaskRepository.findByStatus(status).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public HousekeepingTaskResponseDTO updateTask(Integer id, HousekeepingTaskRequestDTO dto) {
+        HousekeepingTask task = housekeepingTaskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
+        task.setTaskType(dto.getTaskType());
+        if (dto.getStatus() != null) task.setStatus(dto.getStatus());
+        return mapToResponse(housekeepingTaskRepository.save(task));
+    }
+
+    @Override
+    public HousekeepingTaskResponseDTO completeTask(Integer id) {
+        HousekeepingTask task = housekeepingTaskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
+        task.setStatus(TaskStatus.Done);
+        task.setCompletedAt(LocalDateTime.now());
+
+        Room room = task.getRoom();
+        room.setRoomStatus(RoomStatus.Available);
+        roomRepository.save(room);
+
+        return mapToResponse(housekeepingTaskRepository.save(task));
+    }
+
+    @Override
+    public void deleteTask(Integer id) {
+        HousekeepingTask task = housekeepingTaskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
+        housekeepingTaskRepository.delete(task);
+    }
+
+    private HousekeepingTaskResponseDTO mapToResponse(HousekeepingTask t) {
+        return new HousekeepingTaskResponseDTO(t.getTaskId(), t.getRoom().getRoomId(),
+                t.getRoom().getRoomNumber(), t.getTaskType(), t.getAssignedTo().getUserId(),
+                t.getAssignedTo().getName(), t.getAssignedDate(), t.getCompletedAt(), t.getStatus());
+    }
+}
+java// ===== MAINTENANCE REQUEST SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.MaintenanceRequestRequestDTO;
+import com.staynest.demo.dto.MaintenanceRequestResponseDTO;
+import com.staynest.demo.enums.RequestStatus;
+import java.util.List;
+
+public interface MaintenanceRequestService {
+    MaintenanceRequestResponseDTO createRequest(MaintenanceRequestRequestDTO dto);
+    MaintenanceRequestResponseDTO getRequestById(Integer id);
+    List<MaintenanceRequestResponseDTO> getAllRequests();
+    List<MaintenanceRequestResponseDTO> getRequestsByRoom(Integer roomId);
+    List<MaintenanceRequestResponseDTO> getRequestsByStatus(RequestStatus status);
+    MaintenanceRequestResponseDTO updateRequest(Integer id, MaintenanceRequestRequestDTO dto);
+    MaintenanceRequestResponseDTO resolveRequest(Integer id);
+    void deleteRequest(Integer id);
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.MaintenanceRequestRequestDTO;
+import com.staynest.demo.dto.MaintenanceRequestResponseDTO;
+import com.staynest.demo.entities.MaintenanceRequest;
+import com.staynest.demo.entities.Room;
+import com.staynest.demo.entities.Users;
+import com.staynest.demo.enums.RequestStatus;
+import com.staynest.demo.enums.RoomStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.MaintenanceRequestRepository;
+import com.staynest.demo.repositories.RoomRepository;
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.MaintenanceRequestService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class MaintenanceRequestServiceImpl implements MaintenanceRequestService {
+
+    private final MaintenanceRequestRepository maintenanceRequestRepository;
+    private final RoomRepository roomRepository;
+    private final UsersRepository usersRepository;
+
+    @Override
+    public MaintenanceRequestResponseDTO createRequest(MaintenanceRequestRequestDTO dto) {
+        Room room = roomRepository.findById(dto.getRoomId())
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + dto.getRoomId()));
+        Users reportedBy = usersRepository.findById(dto.getReportedBy())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getReportedBy()));
+
+        MaintenanceRequest req = new MaintenanceRequest();
+        req.setRoom(room);
+        req.setReportedBy(reportedBy);
+        req.setIssueDescription(dto.getIssueDescription());
+        req.setPriority(dto.getPriority());
+        req.setRaisedDate(LocalDateTime.now());
+        req.setStatus(RequestStatus.Open);
+
+        room.setRoomStatus(RoomStatus.Maintenance);
+        roomRepository.save(room);
+
+        return mapToResponse(maintenanceRequestRepository.save(req));
+    }
+
+    @Override
+    public MaintenanceRequestResponseDTO getRequestById(Integer id) {
+        MaintenanceRequest req = maintenanceRequestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+        return mapToResponse(req);
+    }
+
+    @Override
+    public List<MaintenanceRequestResponseDTO> getAllRequests() {
+        return maintenanceRequestRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<MaintenanceRequestResponseDTO> getRequestsByRoom(Integer roomId) {
+        return maintenanceRequestRepository.findByRoom_RoomId(roomId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<MaintenanceRequestResponseDTO> getRequestsByStatus(RequestStatus status) {
+        return maintenanceRequestRepository.findByStatus(status).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public MaintenanceRequestResponseDTO updateRequest(Integer id, MaintenanceRequestRequestDTO dto) {
+        MaintenanceRequest req = maintenanceRequestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+        req.setIssueDescription(dto.getIssueDescription());
+        req.setPriority(dto.getPriority());
+        if (dto.getStatus() != null) req.setStatus(dto.getStatus());
+        return mapToResponse(maintenanceRequestRepository.save(req));
+    }
+
+    @Override
+    public MaintenanceRequestResponseDTO resolveRequest(Integer id) {
+        MaintenanceRequest req = maintenanceRequestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+        req.setStatus(RequestStatus.Resolved);
+        req.setResolvedDate(LocalDateTime.now());
+
+        Room room = req.getRoom();
+        room.setRoomStatus(RoomStatus.Available);
+        roomRepository.save(room);
+
+        return mapToResponse(maintenanceRequestRepository.save(req));
+    }
+
+    @Override
+    public void deleteRequest(Integer id) {
+        MaintenanceRequest req = maintenanceRequestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+        maintenanceRequestRepository.delete(req);
+    }
+
+    private MaintenanceRequestResponseDTO mapToResponse(MaintenanceRequest r) {
+        return new MaintenanceRequestResponseDTO(r.getRequestId(), r.getRoom().getRoomId(),
+                r.getRoom().getRoomNumber(), r.getReportedBy().getUserId(), r.getReportedBy().getName(),
+                r.getIssueDescription(), r.getPriority(), r.getRaisedDate(), r.getResolvedDate(), r.getStatus());
+    }
+}
+java// ===== MENU ITEM SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.MenuItemRequestDTO;
+import com.staynest.demo.dto.MenuItemResponseDTO;
+import java.util.List;
+
+public interface MenuItemService {
+    MenuItemResponseDTO createMenuItem(MenuItemRequestDTO dto);
+    MenuItemResponseDTO getMenuItemById(Integer id);
+    List<MenuItemResponseDTO> getAllMenuItems();
+    List<MenuItemResponseDTO> getAvailableMenuItems(Boolean isAvailable);
+    MenuItemResponseDTO updateMenuItem(Integer id, MenuItemRequestDTO dto);
+    void deleteMenuItem(Integer id);
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.MenuItemRequestDTO;
+import com.staynest.demo.dto.MenuItemResponseDTO;
+import com.staynest.demo.entities.MenuItem;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.MenuItemRepository;
+import com.staynest.demo.service.MenuItemService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class MenuItemServiceImpl implements MenuItemService {
+
+    private final MenuItemRepository menuItemRepository;
+
+    @Override
+    public MenuItemResponseDTO createMenuItem(MenuItemRequestDTO dto) {
+        MenuItem item = new MenuItem();
+        item.setName(dto.getName());
+        item.setCategory(dto.getCategory());
+        item.setPrice(dto.getPrice());
+        item.setIsAvailable(dto.getIsAvailable());
+        item.setDietaryTags(dto.getDietaryTags());
+        return mapToResponse(menuItemRepository.save(item));
+    }
+
+    @Override
+    public MenuItemResponseDTO getMenuItemById(Integer id) {
+        MenuItem item = menuItemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("MenuItem not found with id: " + id));
+        return mapToResponse(item);
+    }
+
+    @Override
+    public List<MenuItemResponseDTO> getAllMenuItems() {
+        return menuItemRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<MenuItemResponseDTO> getAvailableMenuItems(Boolean isAvailable) {
+        return menuItemRepository.findByIsAvailable(isAvailable).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public MenuItemResponseDTO updateMenuItem(Integer id, MenuItemRequestDTO dto) {
+        MenuItem item = menuItemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("MenuItem not found with id: " + id));
+        item.setName(dto.getName());
+        item.setCategory(dto.getCategory());
+        item.setPrice(dto.getPrice());
+        item.setIsAvailable(dto.getIsAvailable());
+        item.setDietaryTags(dto.getDietaryTags());
+        return mapToResponse(menuItemRepository.save(item));
+    }
+
+    @Override
+    public void deleteMenuItem(Integer id) {
+        MenuItem item = menuItemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("MenuItem not found with id: " + id));
+        menuItemRepository.delete(item);
+    }
+
+    private MenuItemResponseDTO mapToResponse(MenuItem m) {
+        return new MenuItemResponseDTO(m.getMenuItemId(), m.getName(), m.getCategory(),
+                m.getPrice(), m.getIsAvailable(), m.getDietaryTags());
+    }
+}
+java// ===== FB ORDER SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.FBOrderRequestDTO;
+import com.staynest.demo.dto.FBOrderResponseDTO;
+import com.staynest.demo.enums.OrderStatus;
+import java.util.List;
+
+public interface FBOrderService {
+    FBOrderResponseDTO createOrder(FBOrderRequestDTO dto);
+    FBOrderResponseDTO getOrderById(Integer id);
+    List<FBOrderResponseDTO> getAllOrders();
+    List<FBOrderResponseDTO> getOrdersByStay(Integer stayId);
+    List<FBOrderResponseDTO> getOrdersByStatus(OrderStatus status);
+    FBOrderResponseDTO updateOrderStatus(Integer id, OrderStatus status);
+    void deleteOrder(Integer id);
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.FBOrderRequestDTO;
+import com.staynest.demo.dto.FBOrderResponseDTO;
+import com.staynest.demo.entities.FBOrder;
+import com.staynest.demo.entities.StayRecord;
+import com.staynest.demo.enums.OrderStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.FBOrderRepository;
+import com.staynest.demo.repositories.StayRecordRepository;
+import com.staynest.demo.service.FBOrderService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class FBOrderServiceImpl implements FBOrderService {
+
+    private final FBOrderRepository fbOrderRepository;
+    private final StayRecordRepository stayRecordRepository;
+
+    @Override
+    public FBOrderResponseDTO createOrder(FBOrderRequestDTO dto) {
+        StayRecord stay = stayRecordRepository.findById(dto.getStayId())
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found with id: " + dto.getStayId()));
+        FBOrder order = new FBOrder();
+        order.setStayRecord(stay);
+        order.setTableNumber(dto.getTableNumber());
+        order.setOrderType(dto.getOrderType());
+        order.setItemsJson(dto.getItemsJson());
+        order.setTotalAmount(dto.getTotalAmount());
+        order.setOrderTime(LocalDateTime.now());
+        order.setStatus(OrderStatus.Placed);
+        return mapToResponse(fbOrderRepository.save(order));
+    }
+
+    @Override
+    public FBOrderResponseDTO getOrderById(Integer id) {
+        FBOrder order = fbOrderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+        return mapToResponse(order);
+    }
+
+    @Override
+    public List<FBOrderResponseDTO> getAllOrders() {
+        return fbOrderRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<FBOrderResponseDTO> getOrdersByStay(Integer stayId) {
+        return fbOrderRepository.findByStayRecord_StayId(stayId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<FBOrderResponseDTO> getOrdersByStatus(OrderStatus status) {
+        return fbOrderRepository.findByStatus(status).stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public FBOrderResponseDTO updateOrderStatus(Integer id, OrderStatus status) {
+        FBOrder order = fbOrderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+        order.setStatus(status);
+        return mapToResponse(fbOrderRepository.save(order));
+    }
+
+    @Override
+    public void deleteOrder(Integer id) {
+        FBOrder order = fbOrderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+        fbOrderRepository.delete(order);
+    }
+
+    private FBOrderResponseDTO mapToResponse(FBOrder o) {
+        return new FBOrderResponseDTO(o.getOrderId(), o.getStayRecord().getStayId(), o.getTableNumber(),
+                o.getOrderType(), o.getItemsJson(), o.getTotalAmount(), o.getOrderTime(), o.getStatus());
+    }
+}
+java// ===== DINING RESERVATION SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.DiningReservationRequestDTO;
+import com.staynest.demo.dto.DiningReservationResponseDTO;
+import com.staynest.demo.enums.DiningStatus;
+import java.util.List;
+
+public interface DiningReservationService {
+    DiningReservationResponseDTO createDiningReservation(DiningReservationRequestDTO dto);
+    DiningReservationResponseDTO getDiningReservationById(Integer id);
+    List<DiningReservationResponseDTO> getAllDiningReservations();
+    List<DiningReservationResponseDTO> getDiningReservationsByGuest(Integer guestId);
+    List<DiningReservationResponseDTO> getDiningReservationsByStatus(DiningStatus status);
+    DiningReservationResponseDTO updateDiningReservation(Integer id, DiningReservationRequestDTO dto);
+    void deleteDiningReservation(Integer id);
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.DiningReservationRequestDTO;
+import com.staynest.demo.dto.DiningReservationResponseDTO;
+import com.staynest.demo.entities.DiningReservation;
+import com.staynest.demo.entities.GuestProfile;
+import com.staynest.demo.entities.StayRecord;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.DiningReservationRepository;
+import com.staynest.demo.repositories.GuestProfileRepository;
+import com.staynest.demo.repositories.StayRecordRepository;
+import com.staynest.demo.enums.DiningStatus;
+import com.staynest.demo.service.DiningReservationService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class DiningReservationServiceImpl implements DiningReservationService {
+
+    private final DiningReservationRepository diningReservationRepository;
+    private final GuestProfileRepository guestProfileRepository;
+    private final StayRecordRepository stayRecordRepository;
+
+    @Override
+    public DiningReservationResponseDTO createDiningReservation(DiningReservationRequestDTO dto) {
+        GuestProfile guest = guestProfileRepository.findById(dto.getGuestId())
+                .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + dto.getGuestId()));
+        StayRecord stay = stayRecordRepository.findById(dto.getStayId())
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found with id: " + dto.getStayId()));
+
+        DiningReservation dr = new DiningReservation();
+        dr.setGuest(guest);
+        dr.setStayRecord(stay);
+        dr.setRestaurantOutlet(dto.getRestaurantOutlet());
+        dr.setDate(dto.getDate());
+        dr.setTime(dto.getTime());
+        dr.setCovers(dto.getCovers());
+        dr.setStatus(DiningStatus.Confirmed);
+        return mapToResponse(diningReservationRepository.save(dr));
+    }
+
+    @Override
+    public DiningReservationResponseDTO getDiningReservationById(Integer id) {
+        DiningReservation dr = diningReservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("DiningReservation not found with id: " + id));
+        return mapToResponse(dr);
+    }
+
+    @Override
+    public List<DiningReservationResponseDTO> getAllDiningReservations() {
+        return diningReservationRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<DiningReservationResponseDTO> getDiningReservationsByGuest(Integer guestId) {
+        return diningReservationRepository.findByGuest_GuestId(guestId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<DiningReservationResponseDTO> getDiningReservationsByStatus(DiningStatus status) {
+        return diningReservationRepository.findByStatus(status).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public DiningReservationResponseDTO updateDiningReservation(Integer id, DiningReservationRequestDTO dto) {
+        DiningReservation dr = diningReservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("DiningReservation not found with id: " + id));
+        dr.setRestaurantOutlet(dto.getRestaurantOutlet());
+        dr.setDate(dto.getDate());
+        dr.setTime(dto.getTime());
+        dr.setCovers(dto.getCovers());
+        if (dto.getStatus() != null) dr.setStatus(dto.getStatus());
+        return mapToResponse(diningReservationRepository.save(dr));
+    }
+
+    @Override
+    public void deleteDiningReservation(Integer id) {
+        DiningReservation dr = diningReservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("DiningReservation not found with id: " + id));
+        diningReservationRepository.delete(dr);
+    }
+
+    private DiningReservationResponseDTO mapToResponse(DiningReservation dr) {
+        return new DiningReservationResponseDTO(dr.getDiningResId(), dr.getGuest().getGuestId(),
+                dr.getGuest().getUsers().getName(), dr.getStayRecord().getStayId(), dr.getRestaurantOutlet(),
+                dr.getDate(), dr.getTime(), dr.getCovers(), dr.getStatus());
+    }
+}
+java// ===== HOSPITALITY REPORT SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.HospitalityReportRequestDTO;
+import com.staynest.demo.dto.HospitalityReportResponseDTO;
+import com.staynest.demo.enums.ReportScope;
+import java.util.List;
+
+public interface HospitalityReportService {
+    HospitalityReportResponseDTO generateReport(HospitalityReportRequestDTO dto);
+    HospitalityReportResponseDTO getReportById(Integer id);
+    List<HospitalityReportResponseDTO> getAllReports();
+    List<HospitalityReportResponseDTO> getReportsByScope(ReportScope scope);
+    void deleteReport(Integer id);
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.HospitalityReportRequestDTO;
+import com.staynest.demo.dto.HospitalityReportResponseDTO;
+import com.staynest.demo.entities.HospitalityReport;
+import com.staynest.demo.enums.ReportScope;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.HospitalityReportRepository;
+import com.staynest.demo.service.HospitalityReportService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+// ===== USER SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.UserRequestDTO;
+import com.staynest.demo.dto.UserResponseDTO;
+import java.util.List;
+
+public interface UserService {
+    UserResponseDTO createUser(UserRequestDTO dto);
+    UserResponseDTO getUserById(Integer id);
+    UserResponseDTO getUserByEmail(String email);
+    List<UserResponseDTO> getAllUsers();
+    UserResponseDTO updateUser(Integer id, UserRequestDTO dto);
+    void deleteUser(Integer id);
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.UserRequestDTO;
+import com.staynest.demo.dto.UserResponseDTO;
+import com.staynest.demo.entities.Users;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.UserService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class UserServiceImpl implements UserService {
+
+    private final UsersRepository usersRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    public UserResponseDTO createUser(UserRequestDTO dto) {
+        Users user = new Users();
+        user.setName(dto.getName());
+        user.setRole(dto.getRole());
+        user.setEmail(dto.getEmail());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        user.setPhone(dto.getPhone());
+        user.setUserStatus(dto.getUserStatus());
+        return mapToResponse(usersRepository.save(user));
+    }
+
+    @Override
+    public UserResponseDTO getUserById(Integer id) {
+        Users user = usersRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        return mapToResponse(user);
+    }
+
+    @Override
+    public UserResponseDTO getUserByEmail(String email) {
+        Users user = usersRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+        return mapToResponse(user);
+    }
+
+    @Override
+    public List<UserResponseDTO> getAllUsers() {
+        return usersRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public UserResponseDTO updateUser(Integer id, UserRequestDTO dto) {
+        Users user = usersRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        user.setName(dto.getName());
+        user.setRole(dto.getRole());
+        user.setEmail(dto.getEmail());
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
+        user.setPhone(dto.getPhone());
+        user.setUserStatus(dto.getUserStatus());
+        return mapToResponse(usersRepository.save(user));
+    }
+
+    @Override
+    public void deleteUser(Integer id) {
+        Users user = usersRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        usersRepository.delete(user);
+    }
+
+    private UserResponseDTO mapToResponse(Users user) {
+        return new UserResponseDTO(user.getUserId(), user.getName(), user.getRole(),
+                user.getEmail(), user.getPhone(), user.getUserStatus());
+    }
+}
+
+java
+
+// ===== AUDIT LOG SERVICE (read-only; written internally by AOP) =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.AuditLogResponseDTO;
+import java.util.List;
+
+public interface AuditLogService {
+    AuditLogResponseDTO createLog(Integer userId, String action, String entityType);
+    List<AuditLogResponseDTO> getLogsByUser(Integer userId);
+    List<AuditLogResponseDTO> getAllLogs();
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.AuditLogResponseDTO;
+import com.staynest.demo.entities.AuditLog;
+import com.staynest.demo.entities.Users;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.AuditLogRepository;
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.AuditLogService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class AuditLogServiceImpl implements AuditLogService {
+
+    private final AuditLogRepository auditLogRepository;
+    private final UsersRepository usersRepository;
+
+    @Override
+    public AuditLogResponseDTO createLog(Integer userId, String action, String entityType) {
+        Users user = usersRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        AuditLog log = new AuditLog();
+        log.setUser(user);
+        log.setAction(action);
+        log.setEntityType(entityType);
+        log.setLocalDateTime(LocalDateTime.now());
+        return mapToResponse(auditLogRepository.save(log));
+    }
+
+    @Override
+    public List<AuditLogResponseDTO> getLogsByUser(Integer userId) {
+        return auditLogRepository.findByUser_UserId(userId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<AuditLogResponseDTO> getAllLogs() {
+        return auditLogRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    private AuditLogResponseDTO mapToResponse(AuditLog log) {
+        return new AuditLogResponseDTO(log.getAuditId(), log.getUser().getUserId(),
+                log.getUser().getName(), log.getAction(), log.getEntityType(), log.getLocalDateTime());
+    }
+}
+
+java
+
+// ===== GUEST PROFILE SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.GuestProfileRequestDTO;
+import com.staynest.demo.dto.GuestProfileResponseDTO;
+import java.util.List;
+
+public interface GuestProfileService {
+    GuestProfileResponseDTO createGuestProfile(GuestProfileRequestDTO dto);
+    GuestProfileResponseDTO getGuestById(Integer id);
+    GuestProfileResponseDTO getGuestByUserId(Integer userId);
+    List<GuestProfileResponseDTO> getAllGuests();
+    GuestProfileResponseDTO updateGuestProfile(Integer id, GuestProfileRequestDTO dto);
+    void deleteGuestProfile(Integer id);
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.GuestProfileRequestDTO;
+import com.staynest.demo.dto.GuestProfileResponseDTO;
+import com.staynest.demo.entities.GuestProfile;
+import com.staynest.demo.entities.Users;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.GuestProfileRepository;
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.GuestProfileService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class GuestProfileServiceImpl implements GuestProfileService {
+
+    private final GuestProfileRepository guestProfileRepository;
+    private final UsersRepository usersRepository;
+
+    @Override
+    public GuestProfileResponseDTO createGuestProfile(GuestProfileRequestDTO dto) {
+        Users user = usersRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getUserId()));
+        GuestProfile guest = new GuestProfile();
+        guest.setUsers(user);
+        guest.setNationality(dto.getNationality());
+        guest.setIdDocumentType(dto.getIdDocumentType());
+        guest.setIdNumber(dto.getIdNumber());
+        guest.setPreferencesJson(dto.getPreferencesJson());
+        guest.setLoyaltyTier(dto.getLoyaltyTier());
+        guest.setStatus(dto.getStatus());
+        return mapToResponse(guestProfileRepository.save(guest));
+    }
+
+    @Override
+    public GuestProfileResponseDTO getGuestById(Integer id) {
+        GuestProfile guest = guestProfileRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + id));
+        return mapToResponse(guest);
+    }
+
+    @Override
+    public GuestProfileResponseDTO getGuestByUserId(Integer userId) {
+        GuestProfile guest = guestProfileRepository.findByUsers_UserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Guest not found for userId: " + userId));
+        return mapToResponse(guest);
+    }
+
+    @Override
+    public List<GuestProfileResponseDTO> getAllGuests() {
+        return guestProfileRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public GuestProfileResponseDTO updateGuestProfile(Integer id, GuestProfileRequestDTO dto) {
+        GuestProfile guest = guestProfileRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + id));
+        guest.setNationality(dto.getNationality());
+        guest.setIdDocumentType(dto.getIdDocumentType());
+        guest.setIdNumber(dto.getIdNumber());
+        guest.setPreferencesJson(dto.getPreferencesJson());
+        guest.setLoyaltyTier(dto.getLoyaltyTier());
+        guest.setStatus(dto.getStatus());
+        return mapToResponse(guestProfileRepository.save(guest));
+    }
+
+    @Override
+    public void deleteGuestProfile(Integer id) {
+        GuestProfile guest = guestProfileRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + id));
+        guestProfileRepository.delete(guest);
+    }
+
+    private GuestProfileResponseDTO mapToResponse(GuestProfile guest) {
+        return new GuestProfileResponseDTO(guest.getGuestId(), guest.getUsers().getUserId(),
+                guest.getUsers().getName(), guest.getUsers().getEmail(), guest.getNationality(),
+                guest.getIdDocumentType(), guest.getIdNumber(), guest.getPreferencesJson(),
+                guest.getLoyaltyTier(), guest.getStatus());
+    }
+}
+
+java
+
+// ===== ROOM TYPE SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.RoomTypeRequestDTO;
+import com.staynest.demo.dto.RoomTypeResponseDTO;
+import com.staynest.demo.enums.RoomTypeStatus;
+import java.util.List;
+
+public interface RoomTypeService {
+    RoomTypeResponseDTO createRoomType(RoomTypeRequestDTO dto);
+    RoomTypeResponseDTO getRoomTypeById(Integer id);
+    List<RoomTypeResponseDTO> getAllRoomTypes();
+    List<RoomTypeResponseDTO> getRoomTypesByStatus(RoomTypeStatus status);
+    RoomTypeResponseDTO updateRoomType(Integer id, RoomTypeRequestDTO dto);
+    void deleteRoomType(Integer id);
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.RoomTypeRequestDTO;
+import com.staynest.demo.dto.RoomTypeResponseDTO;
+import com.staynest.demo.entities.RoomType;
+import com.staynest.demo.enums.RoomTypeStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.RoomTypeRepository;
+import com.staynest.demo.service.RoomTypeService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class RoomTypeServiceImpl implements RoomTypeService {
+
+    private final RoomTypeRepository roomTypeRepository;
+
+    @Override
+    public RoomTypeResponseDTO createRoomType(RoomTypeRequestDTO dto) {
+        RoomType roomType = new RoomType();
+        roomType.setName(dto.getName());
+        roomType.setBedConfiguration(dto.getBedConfiguration());
+        roomType.setMaxOccupancy(dto.getMaxOccupancy());
+        roomType.setBaseRate(dto.getBaseRate());
+        roomType.setAmenitiesList(dto.getAmenitiesList());
+        roomType.setRoomTypeStatus(dto.getRoomTypeStatus());
+        return mapToResponse(roomTypeRepository.save(roomType));
+    }
+
+    @Override
+    public RoomTypeResponseDTO getRoomTypeById(Integer id) {
+        RoomType roomType = roomTypeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + id));
+        return mapToResponse(roomType);
+    }
+
+    @Override
+    public List<RoomTypeResponseDTO> getAllRoomTypes() {
+        return roomTypeRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RoomTypeResponseDTO> getRoomTypesByStatus(RoomTypeStatus status) {
+        return roomTypeRepository.findByRoomTypeStatus(status).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public RoomTypeResponseDTO updateRoomType(Integer id, RoomTypeRequestDTO dto) {
+        RoomType roomType = roomTypeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + id));
+        roomType.setName(dto.getName());
+        roomType.setBedConfiguration(dto.getBedConfiguration());
+        roomType.setMaxOccupancy(dto.getMaxOccupancy());
+        roomType.setBaseRate(dto.getBaseRate());
+        roomType.setAmenitiesList(dto.getAmenitiesList());
+        roomType.setRoomTypeStatus(dto.getRoomTypeStatus());
+        return mapToResponse(roomTypeRepository.save(roomType));
+    }
+
+    @Override
+    public void deleteRoomType(Integer id) {
+        RoomType roomType = roomTypeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + id));
+        roomTypeRepository.delete(roomType);
+    }
+
+    private RoomTypeResponseDTO mapToResponse(RoomType rt) {
+        return new RoomTypeResponseDTO(rt.getRoomTypeId(), rt.getName(), rt.getBedConfiguration(),
+                rt.getMaxOccupancy(), rt.getBaseRate(), rt.getAmenitiesList(), rt.getRoomTypeStatus());
+    }
+}
+
+java
+
+// ===== ROOM SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.RoomRequestDTO;
+import com.staynest.demo.dto.RoomResponseDTO;
+import com.staynest.demo.enums.RoomStatus;
+import java.util.List;
+
+public interface RoomService {
+    RoomResponseDTO createRoom(RoomRequestDTO dto);
+    RoomResponseDTO getRoomById(Integer id);
+    List<RoomResponseDTO> getAllRooms();
+    List<RoomResponseDTO> getRoomsByStatus(RoomStatus status);
+    List<RoomResponseDTO> getRoomsByRoomType(Integer roomTypeId);
+    RoomResponseDTO updateRoom(Integer id, RoomRequestDTO dto);
+    void deleteRoom(Integer id);
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.RoomRequestDTO;
+import com.staynest.demo.dto.RoomResponseDTO;
+import com.staynest.demo.entities.Room;
+import com.staynest.demo.entities.RoomType;
+import com.staynest.demo.enums.RoomStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.RoomRepository;
+import com.staynest.demo.repositories.RoomTypeRepository;
+import com.staynest.demo.service.RoomService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class RoomServiceImpl implements RoomService {
+
+    private final RoomRepository roomRepository;
+    private final RoomTypeRepository roomTypeRepository;
+
+    @Override
+    public RoomResponseDTO createRoom(RoomRequestDTO dto) {
+        RoomType roomType = roomTypeRepository.findById(dto.getRoomTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + dto.getRoomTypeId()));
+        Room room = new Room();
+        room.setRoomNumber(dto.getRoomNumber());
+        room.setFloor(dto.getFloor());
+        room.setRoomType(roomType);
+        room.setRoomStatus(dto.getRoomStatus());
+        return mapToResponse(roomRepository.save(room));
+    }
+
+    @Override
+    public RoomResponseDTO getRoomById(Integer id) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+        return mapToResponse(room);
+    }
+
+    @Override
+    public List<RoomResponseDTO> getAllRooms() {
+        return roomRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RoomResponseDTO> getRoomsByStatus(RoomStatus status) {
+        return roomRepository.findByRoomStatus(status).stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RoomResponseDTO> getRoomsByRoomType(Integer roomTypeId) {
+        return roomRepository.findByRoomType_RoomTypeId(roomTypeId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public RoomResponseDTO updateRoom(Integer id, RoomRequestDTO dto) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+        RoomType roomType = roomTypeRepository.findById(dto.getRoomTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + dto.getRoomTypeId()));
+        room.setRoomNumber(dto.getRoomNumber());
+        room.setFloor(dto.getFloor());
+        room.setRoomType(roomType);
+        room.setRoomStatus(dto.getRoomStatus());
+        return mapToResponse(roomRepository.save(room));
+    }
+
+    @Override
+    public void deleteRoom(Integer id) {
+        Room room = roomRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + id));
+        roomRepository.delete(room);
+    }
+
+    private RoomResponseDTO mapToResponse(Room room) {
+        return new RoomResponseDTO(room.getRoomId(), room.getRoomNumber(), room.getFloor(),
+                room.getRoomType().getRoomTypeId(), room.getRoomType().getName().toString(), room.getRoomStatus());
+    }
+}
+
+java
+
+// ===== RATE PLAN SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.RatePlanRequestDTO;
+import com.staynest.demo.dto.RatePlanResponseDTO;
+import java.util.List;
+
+public interface RatePlanService {
+    RatePlanResponseDTO createRatePlan(RatePlanRequestDTO dto);
+    RatePlanResponseDTO getRatePlanById(Integer id);
+    List<RatePlanResponseDTO> getAllRatePlans();
+    List<RatePlanResponseDTO> getRatePlansByRoomType(Integer roomTypeId);
+    RatePlanResponseDTO updateRatePlan(Integer id, RatePlanRequestDTO dto);
+    void deleteRatePlan(Integer id);
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.RatePlanRequestDTO;
+import com.staynest.demo.dto.RatePlanResponseDTO;
+import com.staynest.demo.entities.RatePlan;
+import com.staynest.demo.entities.RoomType;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.RatePlanRepository;
+import com.staynest.demo.repositories.RoomTypeRepository;
+import com.staynest.demo.service.RatePlanService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class RatePlanServiceImpl implements RatePlanService {
+
+    private final RatePlanRepository ratePlanRepository;
+    private final RoomTypeRepository roomTypeRepository;
+
+    @Override
+    public RatePlanResponseDTO createRatePlan(RatePlanRequestDTO dto) {
+        RoomType roomType = roomTypeRepository.findById(dto.getRoomTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + dto.getRoomTypeId()));
+        RatePlan ratePlan = new RatePlan();
+        ratePlan.setRoomType(roomType);
+        ratePlan.setRatePlanType(dto.getRatePlanType());
+        ratePlan.setPricePerNight(dto.getPricePerNight());
+        ratePlan.setValidFrom(dto.getValidFrom());
+        ratePlan.setValidTo(dto.getValidTo());
+        ratePlan.setMealPlanIncluded(dto.getMealPlanIncluded());
+        ratePlan.setRatePlanStatus(dto.getRatePlanStatus());
+        return mapToResponse(ratePlanRepository.save(ratePlan));
+    }
+
+    @Override
+    public RatePlanResponseDTO getRatePlanById(Integer id) {
+        RatePlan ratePlan = ratePlanRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("RatePlan not found with id: " + id));
+        return mapToResponse(ratePlan);
+    }
+
+    @Override
+    public List<RatePlanResponseDTO> getAllRatePlans() {
+        return ratePlanRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RatePlanResponseDTO> getRatePlansByRoomType(Integer roomTypeId) {
+        return ratePlanRepository.findByRoomType_RoomTypeId(roomTypeId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public RatePlanResponseDTO updateRatePlan(Integer id, RatePlanRequestDTO dto) {
+        RatePlan ratePlan = ratePlanRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("RatePlan not found with id: " + id));
+        RoomType roomType = roomTypeRepository.findById(dto.getRoomTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + dto.getRoomTypeId()));
+        ratePlan.setRoomType(roomType);
+        ratePlan.setRatePlanType(dto.getRatePlanType());
+        ratePlan.setPricePerNight(dto.getPricePerNight());
+        ratePlan.setValidFrom(dto.getValidFrom());
+        ratePlan.setValidTo(dto.getValidTo());
+        ratePlan.setMealPlanIncluded(dto.getMealPlanIncluded());
+        ratePlan.setRatePlanStatus(dto.getRatePlanStatus());
+        return mapToResponse(ratePlanRepository.save(ratePlan));
+    }
+
+    @Override
+    public void deleteRatePlan(Integer id) {
+        RatePlan ratePlan = ratePlanRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("RatePlan not found with id: " + id));
+        ratePlanRepository.delete(ratePlan);
+    }
+
+    private RatePlanResponseDTO mapToResponse(RatePlan rp) {
+        return new RatePlanResponseDTO(rp.getRatePlanId(), rp.getRoomType().getRoomTypeId(),
+                rp.getRoomType().getName().toString(), rp.getRatePlanType(), rp.getPricePerNight(),
+                rp.getValidFrom(), rp.getValidTo(), rp.getMealPlanIncluded(), rp.getRatePlanStatus());
+    }
+}
+
+java
+
+// ===== RESERVATION SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.ReservationRequestDTO;
+import com.staynest.demo.dto.ReservationResponseDTO;
+import com.staynest.demo.enums.ReservationStatus;
+import java.util.List;
+
+public interface ReservationService {
+    ReservationResponseDTO createReservation(ReservationRequestDTO dto);
+    ReservationResponseDTO getReservationById(Integer id);
+    List<ReservationResponseDTO> getAllReservations();
+    List<ReservationResponseDTO> getReservationsByGuest(Integer guestId);
+    List<ReservationResponseDTO> getReservationsByStatus(ReservationStatus status);
+    ReservationResponseDTO updateReservation(Integer id, ReservationRequestDTO dto);
+    ReservationResponseDTO cancelReservation(Integer id);
+    void deleteReservation(Integer id);
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.ReservationRequestDTO;
+import com.staynest.demo.dto.ReservationResponseDTO;
+import com.staynest.demo.entities.GuestProfile;
+import com.staynest.demo.entities.RatePlan;
+import com.staynest.demo.entities.Reservation;
+import com.staynest.demo.entities.RoomType;
+import com.staynest.demo.enums.ReservationStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.GuestProfileRepository;
+import com.staynest.demo.repositories.RatePlanRepository;
+import com.staynest.demo.repositories.ReservationRepository;
+import com.staynest.demo.repositories.RoomTypeRepository;
+import com.staynest.demo.service.ReservationService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class ReservationServiceImpl implements ReservationService {
+
+    private final ReservationRepository reservationRepository;
+    private final GuestProfileRepository guestProfileRepository;
+    private final RoomTypeRepository roomTypeRepository;
+    private final RatePlanRepository ratePlanRepository;
+
+    @Override
+    public ReservationResponseDTO createReservation(ReservationRequestDTO dto) {
+        Reservation res = new Reservation();
+        applyDtoToEntity(res, dto);
+        res.setStatus(ReservationStatus.Confirmed);
+        return mapToResponse(reservationRepository.save(res));
+    }
+
+    @Override
+    public ReservationResponseDTO getReservationById(Integer id) {
+        Reservation res = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+        return mapToResponse(res);
+    }
+
+    @Override
+    public List<ReservationResponseDTO> getAllReservations() {
+        return reservationRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ReservationResponseDTO> getReservationsByGuest(Integer guestId) {
+        return reservationRepository.findByGuest_GuestId(guestId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ReservationResponseDTO> getReservationsByStatus(ReservationStatus status) {
+        return reservationRepository.findByStatus(status).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public ReservationResponseDTO updateReservation(Integer id, ReservationRequestDTO dto) {
+        Reservation res = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+        applyDtoToEntity(res, dto);
+        if (dto.getStatus() != null) res.setStatus(dto.getStatus());
+        return mapToResponse(reservationRepository.save(res));
+    }
+
+    @Override
+    public ReservationResponseDTO cancelReservation(Integer id) {
+        Reservation res = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+        res.setStatus(ReservationStatus.Cancelled);
+        return mapToResponse(reservationRepository.save(res));
+    }
+
+    @Override
+    public void deleteReservation(Integer id) {
+        Reservation res = reservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
+        reservationRepository.delete(res);
+    }
+
+    private void applyDtoToEntity(Reservation res, ReservationRequestDTO dto) {
+        GuestProfile guest = guestProfileRepository.findById(dto.getGuestId())
+                .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + dto.getGuestId()));
+        RoomType roomType = roomTypeRepository.findById(dto.getRoomTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("RoomType not found with id: " + dto.getRoomTypeId()));
+        RatePlan ratePlan = ratePlanRepository.findById(dto.getRatePlanId())
+                .orElseThrow(() -> new ResourceNotFoundException("RatePlan not found with id: " + dto.getRatePlanId()));
+        res.setGuest(guest);
+        res.setRoomType(roomType);
+        res.setRatePlan(ratePlan);
+        res.setCheckInDate(dto.getCheckInDate());
+        res.setCheckOutDate(dto.getCheckOutDate());
+        res.setNights(dto.getNights());
+        res.setAdults(dto.getAdults());
+        res.setChildren(dto.getChildren());
+        res.setTotalAmount(dto.getTotalAmount());
+        res.setBookingChannel(dto.getBookingChannel());
+    }
+
+    private ReservationResponseDTO mapToResponse(Reservation res) {
+        return new ReservationResponseDTO(res.getReservationId(), res.getGuest().getGuestId(),
+                res.getGuest().getUsers().getName(), res.getRoomType().getRoomTypeId(),
+                res.getRoomType().getName().toString(), res.getRatePlan().getRatePlanId(),
+                res.getCheckInDate(), res.getCheckOutDate(), res.getNights(), res.getAdults(),
+                res.getChildren(), res.getTotalAmount(), res.getBookingChannel(), res.getStatus());
+    }
+}
+
+java
+
+// ===== STAY RECORD SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.StayRecordRequestDTO;
+import com.staynest.demo.dto.StayRecordResponseDTO;
+import com.staynest.demo.enums.StayStatus;
+import java.util.List;
+
+public interface StayRecordService {
+    StayRecordResponseDTO checkIn(StayRecordRequestDTO dto);
+    StayRecordResponseDTO getStayById(Integer id);
+    StayRecordResponseDTO getStayByReservation(Integer reservationId);
+    List<StayRecordResponseDTO> getAllStays();
+    List<StayRecordResponseDTO> getStaysByStatus(StayStatus status);
+    StayRecordResponseDTO updateStay(Integer id, StayRecordRequestDTO dto);
+    StayRecordResponseDTO checkOut(Integer id);
+    void deleteStay(Integer id);
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.StayRecordRequestDTO;
+import com.staynest.demo.dto.StayRecordResponseDTO;
+import com.staynest.demo.entities.GuestProfile;
+import com.staynest.demo.entities.Reservation;
+import com.staynest.demo.entities.Room;
+import com.staynest.demo.entities.StayRecord;
+import com.staynest.demo.enums.RoomStatus;
+import com.staynest.demo.enums.StayStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.GuestProfileRepository;
+import com.staynest.demo.repositories.ReservationRepository;
+import com.staynest.demo.repositories.RoomRepository;
+import com.staynest.demo.repositories.StayRecordRepository;
+import com.staynest.demo.service.StayRecordService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class StayRecordServiceImpl implements StayRecordService {
+
+    private final StayRecordRepository stayRecordRepository;
+    private final ReservationRepository reservationRepository;
+    private final GuestProfileRepository guestProfileRepository;
+    private final RoomRepository roomRepository;
+
+    @Override
+    public StayRecordResponseDTO checkIn(StayRecordRequestDTO dto) {
+        Reservation reservation = reservationRepository.findById(dto.getReservationId())
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + dto.getReservationId()));
+        GuestProfile guest = guestProfileRepository.findById(dto.getGuestId())
+                .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + dto.getGuestId()));
+        Room room = roomRepository.findById(dto.getAssignedRoomId())
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + dto.getAssignedRoomId()));
+
+        StayRecord stay = new StayRecord();
+        stay.setReservation(reservation);
+        stay.setGuest(guest);
+        stay.setAssignedRoom(room);
+        stay.setActualCheckIn(LocalDateTime.now());
+        stay.setFolioBalance(0);
+        stay.setStatus(StayStatus.Active);
+
+        room.setRoomStatus(RoomStatus.Occupied);
+        roomRepository.save(room);
+
+        return mapToResponse(stayRecordRepository.save(stay));
+    }
+
+    @Override
+    public StayRecordResponseDTO getStayById(Integer id) {
+        StayRecord stay = stayRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found with id: " + id));
+        return mapToResponse(stay);
+    }
+
+    @Override
+    public StayRecordResponseDTO getStayByReservation(Integer reservationId) {
+        StayRecord stay = stayRecordRepository.findByReservation_ReservationId(reservationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found for reservationId: " + reservationId));
+        return mapToResponse(stay);
+    }
+
+    @Override
+    public List<StayRecordResponseDTO> getAllStays() {
+        return stayRecordRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StayRecordResponseDTO> getStaysByStatus(StayStatus status) {
+        return stayRecordRepository.findByStatus(status).stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public StayRecordResponseDTO updateStay(Integer id, StayRecordRequestDTO dto) {
+        StayRecord stay = stayRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found with id: " + id));
+        stay.setFolioBalance(dto.getFolioBalance());
+        if (dto.getStatus() != null) stay.setStatus(dto.getStatus());
+        return mapToResponse(stayRecordRepository.save(stay));
+    }
+
+    @Override
+    public StayRecordResponseDTO checkOut(Integer id) {
+        StayRecord stay = stayRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found with id: " + id));
+        stay.setActualCheckOut(LocalDateTime.now());
+        stay.setStatus(StayStatus.CheckedOut);
+
+        Room room = stay.getAssignedRoom();
+        room.setRoomStatus(RoomStatus.Cleaning);
+        roomRepository.save(room);
+
+        return mapToResponse(stayRecordRepository.save(stay));
+    }
+
+    @Override
+    public void deleteStay(Integer id) {
+        StayRecord stay = stayRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found with id: " + id));
+        stayRecordRepository.delete(stay);
+    }
+
+    private StayRecordResponseDTO mapToResponse(StayRecord s) {
+        return new StayRecordResponseDTO(s.getStayId(), s.getReservation().getReservationId(),
+                s.getGuest().getGuestId(), s.getGuest().getUsers().getName(),
+                s.getAssignedRoom().getRoomId(), s.getAssignedRoom().getRoomNumber(),
+                s.getActualCheckIn(), s.getActualCheckOut(), s.getFolioBalance(), s.getStatus());
+    }
+}
+
+java
+
+// ===== FOLIO ITEM SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.FolioItemRequestDTO;
+import com.staynest.demo.dto.FolioItemResponseDTO;
+import java.util.List;
+
+public interface FolioItemService {
+    FolioItemResponseDTO postCharge(FolioItemRequestDTO dto);
+    FolioItemResponseDTO getFolioItemById(Integer id);
+    List<FolioItemResponseDTO> getItemsByStay(Integer stayId);
+    void deleteFolioItem(Integer id);
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.FolioItemRequestDTO;
+import com.staynest.demo.dto.FolioItemResponseDTO;
+import com.staynest.demo.entities.FolioItem;
+import com.staynest.demo.entities.StayRecord;
+import com.staynest.demo.entities.Users;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.FolioItemRepository;
+import com.staynest.demo.repositories.StayRecordRepository;
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.FolioItemService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class FolioItemServiceImpl implements FolioItemService {
+
+    private final FolioItemRepository folioItemRepository;
+    private final StayRecordRepository stayRecordRepository;
+    private final UsersRepository usersRepository;
+
+    @Override
+    public FolioItemResponseDTO postCharge(FolioItemRequestDTO dto) {
+        StayRecord stay = stayRecordRepository.findById(dto.getStayId())
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found with id: " + dto.getStayId()));
+        Users postedBy = usersRepository.findById(dto.getPostedBy())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getPostedBy()));
+
+        FolioItem item = new FolioItem();
+        item.setStayRecord(stay);
+        item.setChargeType(dto.getChargeType());
+        item.setDescription(dto.getDescription());
+        item.setAmount(dto.getAmount());
+        item.setPostedDate(LocalDateTime.now());
+        item.setPostedBy(postedBy);
+
+        stay.setFolioBalance(stay.getFolioBalance() + dto.getAmount());
+        stayRecordRepository.save(stay);
+
+        return mapToResponse(folioItemRepository.save(item));
+    }
+
+    @Override
+    public FolioItemResponseDTO getFolioItemById(Integer id) {
+        FolioItem item = folioItemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("FolioItem not found with id: " + id));
+        return mapToResponse(item);
+    }
+
+    @Override
+    public List<FolioItemResponseDTO> getItemsByStay(Integer stayId) {
+        return folioItemRepository.findByStayRecord_StayId(stayId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public void deleteFolioItem(Integer id) {
+        FolioItem item = folioItemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("FolioItem not found with id: " + id));
+        folioItemRepository.delete(item);
+    }
+
+    private FolioItemResponseDTO mapToResponse(FolioItem f) {
+        return new FolioItemResponseDTO(f.getFolioItemId(), f.getStayRecord().getStayId(),
+                f.getChargeType(), f.getDescription(), f.getAmount(), f.getPostedDate(),
+                f.getPostedBy().getUserId(), f.getPostedBy().getName());
+    }
+}
+
+java
+
+// ===== HOUSEKEEPING TASK SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.HousekeepingTaskRequestDTO;
+import com.staynest.demo.dto.HousekeepingTaskResponseDTO;
+import com.staynest.demo.enums.TaskStatus;
+import java.util.List;
+
+public interface HousekeepingTaskService {
+    HousekeepingTaskResponseDTO createTask(HousekeepingTaskRequestDTO dto);
+    HousekeepingTaskResponseDTO getTaskById(Integer id);
+    List<HousekeepingTaskResponseDTO> getAllTasks();
+    List<HousekeepingTaskResponseDTO> getTasksByRoom(Integer roomId);
+    List<HousekeepingTaskResponseDTO> getTasksByStatus(TaskStatus status);
+    HousekeepingTaskResponseDTO updateTask(Integer id, HousekeepingTaskRequestDTO dto);
+    HousekeepingTaskResponseDTO completeTask(Integer id);
+    void deleteTask(Integer id);
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.HousekeepingTaskRequestDTO;
+import com.staynest.demo.dto.HousekeepingTaskResponseDTO;
+import com.staynest.demo.entities.HousekeepingTask;
+import com.staynest.demo.entities.Room;
+import com.staynest.demo.entities.Users;
+import com.staynest.demo.enums.RoomStatus;
+import com.staynest.demo.enums.TaskStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.HousekeepingTaskRepository;
+import com.staynest.demo.repositories.RoomRepository;
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.HousekeepingTaskService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class HousekeepingTaskServiceImpl implements HousekeepingTaskService {
+
+    private final HousekeepingTaskRepository housekeepingTaskRepository;
+    private final RoomRepository roomRepository;
+    private final UsersRepository usersRepository;
+
+    @Override
+    public HousekeepingTaskResponseDTO createTask(HousekeepingTaskRequestDTO dto) {
+        Room room = roomRepository.findById(dto.getRoomId())
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + dto.getRoomId()));
+        Users assignedTo = usersRepository.findById(dto.getAssignedToId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getAssignedToId()));
+
+        HousekeepingTask task = new HousekeepingTask();
+        task.setRoom(room);
+        task.setTaskType(dto.getTaskType());
+        task.setAssignedTo(assignedTo);
+        task.setAssignedDate(LocalDateTime.now());
+        task.setStatus(TaskStatus.Pending);
+        return mapToResponse(housekeepingTaskRepository.save(task));
+    }
+
+    @Override
+    public HousekeepingTaskResponseDTO getTaskById(Integer id) {
+        HousekeepingTask task = housekeepingTaskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
+        return mapToResponse(task);
+    }
+
+    @Override
+    public List<HousekeepingTaskResponseDTO> getAllTasks() {
+        return housekeepingTaskRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<HousekeepingTaskResponseDTO> getTasksByRoom(Integer roomId) {
+        return housekeepingTaskRepository.findByRoom_RoomId(roomId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<HousekeepingTaskResponseDTO> getTasksByStatus(TaskStatus status) {
+        return housekeepingTaskRepository.findByStatus(status).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public HousekeepingTaskResponseDTO updateTask(Integer id, HousekeepingTaskRequestDTO dto) {
+        HousekeepingTask task = housekeepingTaskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
+        task.setTaskType(dto.getTaskType());
+        if (dto.getStatus() != null) task.setStatus(dto.getStatus());
+        return mapToResponse(housekeepingTaskRepository.save(task));
+    }
+
+    @Override
+    public HousekeepingTaskResponseDTO completeTask(Integer id) {
+        HousekeepingTask task = housekeepingTaskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
+        task.setStatus(TaskStatus.Done);
+        task.setCompletedAt(LocalDateTime.now());
+
+        Room room = task.getRoom();
+        room.setRoomStatus(RoomStatus.Available);
+        roomRepository.save(room);
+
+        return mapToResponse(housekeepingTaskRepository.save(task));
+    }
+
+    @Override
+    public void deleteTask(Integer id) {
+        HousekeepingTask task = housekeepingTaskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
+        housekeepingTaskRepository.delete(task);
+    }
+
+    private HousekeepingTaskResponseDTO mapToResponse(HousekeepingTask t) {
+        return new HousekeepingTaskResponseDTO(t.getTaskId(), t.getRoom().getRoomId(),
+                t.getRoom().getRoomNumber(), t.getTaskType(), t.getAssignedTo().getUserId(),
+                t.getAssignedTo().getName(), t.getAssignedDate(), t.getCompletedAt(), t.getStatus());
+    }
+}
+
+java
+
+// ===== MAINTENANCE REQUEST SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.MaintenanceRequestRequestDTO;
+import com.staynest.demo.dto.MaintenanceRequestResponseDTO;
+import com.staynest.demo.enums.RequestStatus;
+import java.util.List;
+
+public interface MaintenanceRequestService {
+    MaintenanceRequestResponseDTO createRequest(MaintenanceRequestRequestDTO dto);
+    MaintenanceRequestResponseDTO getRequestById(Integer id);
+    List<MaintenanceRequestResponseDTO> getAllRequests();
+    List<MaintenanceRequestResponseDTO> getRequestsByRoom(Integer roomId);
+    List<MaintenanceRequestResponseDTO> getRequestsByStatus(RequestStatus status);
+    MaintenanceRequestResponseDTO updateRequest(Integer id, MaintenanceRequestRequestDTO dto);
+    MaintenanceRequestResponseDTO resolveRequest(Integer id);
+    void deleteRequest(Integer id);
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.MaintenanceRequestRequestDTO;
+import com.staynest.demo.dto.MaintenanceRequestResponseDTO;
+import com.staynest.demo.entities.MaintenanceRequest;
+import com.staynest.demo.entities.Room;
+import com.staynest.demo.entities.Users;
+import com.staynest.demo.enums.RequestStatus;
+import com.staynest.demo.enums.RoomStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.MaintenanceRequestRepository;
+import com.staynest.demo.repositories.RoomRepository;
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.MaintenanceRequestService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class MaintenanceRequestServiceImpl implements MaintenanceRequestService {
+
+    private final MaintenanceRequestRepository maintenanceRequestRepository;
+    private final RoomRepository roomRepository;
+    private final UsersRepository usersRepository;
+
+    @Override
+    public MaintenanceRequestResponseDTO createRequest(MaintenanceRequestRequestDTO dto) {
+        Room room = roomRepository.findById(dto.getRoomId())
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with id: " + dto.getRoomId()));
+        Users reportedBy = usersRepository.findById(dto.getReportedBy())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getReportedBy()));
+
+        MaintenanceRequest req = new MaintenanceRequest();
+        req.setRoom(room);
+        req.setReportedBy(reportedBy);
+        req.setIssueDescription(dto.getIssueDescription());
+        req.setPriority(dto.getPriority());
+        req.setRaisedDate(LocalDateTime.now());
+        req.setStatus(RequestStatus.Open);
+
+        room.setRoomStatus(RoomStatus.Maintenance);
+        roomRepository.save(room);
+
+        return mapToResponse(maintenanceRequestRepository.save(req));
+    }
+
+    @Override
+    public MaintenanceRequestResponseDTO getRequestById(Integer id) {
+        MaintenanceRequest req = maintenanceRequestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+        return mapToResponse(req);
+    }
+
+    @Override
+    public List<MaintenanceRequestResponseDTO> getAllRequests() {
+        return maintenanceRequestRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<MaintenanceRequestResponseDTO> getRequestsByRoom(Integer roomId) {
+        return maintenanceRequestRepository.findByRoom_RoomId(roomId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<MaintenanceRequestResponseDTO> getRequestsByStatus(RequestStatus status) {
+        return maintenanceRequestRepository.findByStatus(status).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public MaintenanceRequestResponseDTO updateRequest(Integer id, MaintenanceRequestRequestDTO dto) {
+        MaintenanceRequest req = maintenanceRequestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+        req.setIssueDescription(dto.getIssueDescription());
+        req.setPriority(dto.getPriority());
+        if (dto.getStatus() != null) req.setStatus(dto.getStatus());
+        return mapToResponse(maintenanceRequestRepository.save(req));
+    }
+
+    @Override
+    public MaintenanceRequestResponseDTO resolveRequest(Integer id) {
+        MaintenanceRequest req = maintenanceRequestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+        req.setStatus(RequestStatus.Resolved);
+        req.setResolvedDate(LocalDateTime.now());
+
+        Room room = req.getRoom();
+        room.setRoomStatus(RoomStatus.Available);
+        roomRepository.save(room);
+
+        return mapToResponse(maintenanceRequestRepository.save(req));
+    }
+
+    @Override
+    public void deleteRequest(Integer id) {
+        MaintenanceRequest req = maintenanceRequestRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found with id: " + id));
+        maintenanceRequestRepository.delete(req);
+    }
+
+    private MaintenanceRequestResponseDTO mapToResponse(MaintenanceRequest r) {
+        return new MaintenanceRequestResponseDTO(r.getRequestId(), r.getRoom().getRoomId(),
+                r.getRoom().getRoomNumber(), r.getReportedBy().getUserId(), r.getReportedBy().getName(),
+                r.getIssueDescription(), r.getPriority(), r.getRaisedDate(), r.getResolvedDate(), r.getStatus());
+    }
+}
+
+java
+
+// ===== MENU ITEM SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.MenuItemRequestDTO;
+import com.staynest.demo.dto.MenuItemResponseDTO;
+import java.util.List;
+
+public interface MenuItemService {
+    MenuItemResponseDTO createMenuItem(MenuItemRequestDTO dto);
+    MenuItemResponseDTO getMenuItemById(Integer id);
+    List<MenuItemResponseDTO> getAllMenuItems();
+    List<MenuItemResponseDTO> getAvailableMenuItems(Boolean isAvailable);
+    MenuItemResponseDTO updateMenuItem(Integer id, MenuItemRequestDTO dto);
+    void deleteMenuItem(Integer id);
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.MenuItemRequestDTO;
+import com.staynest.demo.dto.MenuItemResponseDTO;
+import com.staynest.demo.entities.MenuItem;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.MenuItemRepository;
+import com.staynest.demo.service.MenuItemService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class MenuItemServiceImpl implements MenuItemService {
+
+    private final MenuItemRepository menuItemRepository;
+
+    @Override
+    public MenuItemResponseDTO createMenuItem(MenuItemRequestDTO dto) {
+        MenuItem item = new MenuItem();
+        item.setName(dto.getName());
+        item.setCategory(dto.getCategory());
+        item.setPrice(dto.getPrice());
+        item.setIsAvailable(dto.getIsAvailable());
+        item.setDietaryTags(dto.getDietaryTags());
+        return mapToResponse(menuItemRepository.save(item));
+    }
+
+    @Override
+    public MenuItemResponseDTO getMenuItemById(Integer id) {
+        MenuItem item = menuItemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("MenuItem not found with id: " + id));
+        return mapToResponse(item);
+    }
+
+    @Override
+    public List<MenuItemResponseDTO> getAllMenuItems() {
+        return menuItemRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<MenuItemResponseDTO> getAvailableMenuItems(Boolean isAvailable) {
+        return menuItemRepository.findByIsAvailable(isAvailable).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public MenuItemResponseDTO updateMenuItem(Integer id, MenuItemRequestDTO dto) {
+        MenuItem item = menuItemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("MenuItem not found with id: " + id));
+        item.setName(dto.getName());
+        item.setCategory(dto.getCategory());
+        item.setPrice(dto.getPrice());
+        item.setIsAvailable(dto.getIsAvailable());
+        item.setDietaryTags(dto.getDietaryTags());
+        return mapToResponse(menuItemRepository.save(item));
+    }
+
+    @Override
+    public void deleteMenuItem(Integer id) {
+        MenuItem item = menuItemRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("MenuItem not found with id: " + id));
+        menuItemRepository.delete(item);
+    }
+
+    private MenuItemResponseDTO mapToResponse(MenuItem m) {
+        return new MenuItemResponseDTO(m.getMenuItemId(), m.getName(), m.getCategory(),
+                m.getPrice(), m.getIsAvailable(), m.getDietaryTags());
+    }
+}
+
+java
+
+// ===== FB ORDER SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.FBOrderRequestDTO;
+import com.staynest.demo.dto.FBOrderResponseDTO;
+import com.staynest.demo.enums.OrderStatus;
+import java.util.List;
+
+public interface FBOrderService {
+    FBOrderResponseDTO createOrder(FBOrderRequestDTO dto);
+    FBOrderResponseDTO getOrderById(Integer id);
+    List<FBOrderResponseDTO> getAllOrders();
+    List<FBOrderResponseDTO> getOrdersByStay(Integer stayId);
+    List<FBOrderResponseDTO> getOrdersByStatus(OrderStatus status);
+    FBOrderResponseDTO updateOrderStatus(Integer id, OrderStatus status);
+    void deleteOrder(Integer id);
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.FBOrderRequestDTO;
+import com.staynest.demo.dto.FBOrderResponseDTO;
+import com.staynest.demo.entities.FBOrder;
+import com.staynest.demo.entities.StayRecord;
+import com.staynest.demo.enums.OrderStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.FBOrderRepository;
+import com.staynest.demo.repositories.StayRecordRepository;
+import com.staynest.demo.service.FBOrderService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class FBOrderServiceImpl implements FBOrderService {
+
+    private final FBOrderRepository fbOrderRepository;
+    private final StayRecordRepository stayRecordRepository;
+
+    @Override
+    public FBOrderResponseDTO createOrder(FBOrderRequestDTO dto) {
+        StayRecord stay = stayRecordRepository.findById(dto.getStayId())
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found with id: " + dto.getStayId()));
+        FBOrder order = new FBOrder();
+        order.setStayRecord(stay);
+        order.setTableNumber(dto.getTableNumber());
+        order.setOrderType(dto.getOrderType());
+        order.setItemsJson(dto.getItemsJson());
+        order.setTotalAmount(dto.getTotalAmount());
+        order.setOrderTime(LocalDateTime.now());
+        order.setStatus(OrderStatus.Placed);
+        return mapToResponse(fbOrderRepository.save(order));
+    }
+
+    @Override
+    public FBOrderResponseDTO getOrderById(Integer id) {
+        FBOrder order = fbOrderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+        return mapToResponse(order);
+    }
+
+    @Override
+    public List<FBOrderResponseDTO> getAllOrders() {
+        return fbOrderRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<FBOrderResponseDTO> getOrdersByStay(Integer stayId) {
+        return fbOrderRepository.findByStayRecord_StayId(stayId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<FBOrderResponseDTO> getOrdersByStatus(OrderStatus status) {
+        return fbOrderRepository.findByStatus(status).stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public FBOrderResponseDTO updateOrderStatus(Integer id, OrderStatus status) {
+        FBOrder order = fbOrderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+        order.setStatus(status);
+        return mapToResponse(fbOrderRepository.save(order));
+    }
+
+    @Override
+    public void deleteOrder(Integer id) {
+        FBOrder order = fbOrderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
+        fbOrderRepository.delete(order);
+    }
+
+    private FBOrderResponseDTO mapToResponse(FBOrder o) {
+        return new FBOrderResponseDTO(o.getOrderId(), o.getStayRecord().getStayId(), o.getTableNumber(),
+                o.getOrderType(), o.getItemsJson(), o.getTotalAmount(), o.getOrderTime(), o.getStatus());
+    }
+}
+
+java
+
+// ===== DINING RESERVATION SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.DiningReservationRequestDTO;
+import com.staynest.demo.dto.DiningReservationResponseDTO;
+import com.staynest.demo.enums.DiningStatus;
+import java.util.List;
+
+public interface DiningReservationService {
+    DiningReservationResponseDTO createDiningReservation(DiningReservationRequestDTO dto);
+    DiningReservationResponseDTO getDiningReservationById(Integer id);
+    List<DiningReservationResponseDTO> getAllDiningReservations();
+    List<DiningReservationResponseDTO> getDiningReservationsByGuest(Integer guestId);
+    List<DiningReservationResponseDTO> getDiningReservationsByStatus(DiningStatus status);
+    DiningReservationResponseDTO updateDiningReservation(Integer id, DiningReservationRequestDTO dto);
+    void deleteDiningReservation(Integer id);
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.DiningReservationRequestDTO;
+import com.staynest.demo.dto.DiningReservationResponseDTO;
+import com.staynest.demo.entities.DiningReservation;
+import com.staynest.demo.entities.GuestProfile;
+import com.staynest.demo.entities.StayRecord;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.DiningReservationRepository;
+import com.staynest.demo.repositories.GuestProfileRepository;
+import com.staynest.demo.repositories.StayRecordRepository;
+import com.staynest.demo.enums.DiningStatus;
+import com.staynest.demo.service.DiningReservationService;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class DiningReservationServiceImpl implements DiningReservationService {
+
+    private final DiningReservationRepository diningReservationRepository;
+    private final GuestProfileRepository guestProfileRepository;
+    private final StayRecordRepository stayRecordRepository;
+
+    @Override
+    public DiningReservationResponseDTO createDiningReservation(DiningReservationRequestDTO dto) {
+        GuestProfile guest = guestProfileRepository.findById(dto.getGuestId())
+                .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + dto.getGuestId()));
+        StayRecord stay = stayRecordRepository.findById(dto.getStayId())
+                .orElseThrow(() -> new ResourceNotFoundException("Stay not found with id: " + dto.getStayId()));
+
+        DiningReservation dr = new DiningReservation();
+        dr.setGuest(guest);
+        dr.setStayRecord(stay);
+        dr.setRestaurantOutlet(dto.getRestaurantOutlet());
+        dr.setDate(dto.getDate());
+        dr.setTime(dto.getTime());
+        dr.setCovers(dto.getCovers());
+        dr.setStatus(DiningStatus.Confirmed);
+        return mapToResponse(diningReservationRepository.save(dr));
+    }
+
+    @Override
+    public DiningReservationResponseDTO getDiningReservationById(Integer id) {
+        DiningReservation dr = diningReservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("DiningReservation not found with id: " + id));
+        return mapToResponse(dr);
+    }
+
+    @Override
+    public List<DiningReservationResponseDTO> getAllDiningReservations() {
+        return diningReservationRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<DiningReservationResponseDTO> getDiningReservationsByGuest(Integer guestId) {
+        return diningReservationRepository.findByGuest_GuestId(guestId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<DiningReservationResponseDTO> getDiningReservationsByStatus(DiningStatus status) {
+        return diningReservationRepository.findByStatus(status).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public DiningReservationResponseDTO updateDiningReservation(Integer id, DiningReservationRequestDTO dto) {
+        DiningReservation dr = diningReservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("DiningReservation not found with id: " + id));
+        dr.setRestaurantOutlet(dto.getRestaurantOutlet());
+        dr.setDate(dto.getDate());
+        dr.setTime(dto.getTime());
+        dr.setCovers(dto.getCovers());
+        if (dto.getStatus() != null) dr.setStatus(dto.getStatus());
+        return mapToResponse(diningReservationRepository.save(dr));
+    }
+
+    @Override
+    public void deleteDiningReservation(Integer id) {
+        DiningReservation dr = diningReservationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("DiningReservation not found with id: " + id));
+        diningReservationRepository.delete(dr);
+    }
+
+    private DiningReservationResponseDTO mapToResponse(DiningReservation dr) {
+        return new DiningReservationResponseDTO(dr.getDiningResId(), dr.getGuest().getGuestId(),
+                dr.getGuest().getUsers().getName(), dr.getStayRecord().getStayId(), dr.getRestaurantOutlet(),
+                dr.getDate(), dr.getTime(), dr.getCovers(), dr.getStatus());
+    }
+}
+
+java
+
+// ===== HOSPITALITY REPORT SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.HospitalityReportRequestDTO;
+import com.staynest.demo.dto.HospitalityReportResponseDTO;
+import com.staynest.demo.enums.ReportScope;
+import java.util.List;
+
+public interface HospitalityReportService {
+    HospitalityReportResponseDTO generateReport(HospitalityReportRequestDTO dto);
+    HospitalityReportResponseDTO getReportById(Integer id);
+    List<HospitalityReportResponseDTO> getAllReports();
+    List<HospitalityReportResponseDTO> getReportsByScope(ReportScope scope);
+    void deleteReport(Integer id);
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.HospitalityReportRequestDTO;
+import com.staynest.demo.dto.HospitalityReportResponseDTO;
+import com.staynest.demo.entities.HospitalityReport;
+import com.staynest.demo.enums.ReportScope;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.HospitalityReportRepository;
+import com.staynest.demo.service.HospitalityReportService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class HospitalityReportServiceImpl implements HospitalityReportService {
+
+    private final HospitalityReportRepository hospitalityReportRepository;
+
+    @Override
+    public HospitalityReportResponseDTO generateReport(HospitalityReportRequestDTO dto) {
+        HospitalityReport report = new HospitalityReport();
+        report.setScope(dto.getScope());
+        report.setMetricsJson(dto.getMetricsJson());
+        report.setGeneratedDate(LocalDateTime.now());
+        return mapToResponse(hospitalityReportRepository.save(report));
+    }
+
+    @Override
+    public HospitalityReportResponseDTO getReportById(Integer id) {
+        HospitalityReport report = hospitalityReportRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Report not found with id: " + id));
+        return mapToResponse(report);
+    }
+
+    @Override
+    public List<HospitalityReportResponseDTO> getAllReports() {
+        return hospitalityReportRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<HospitalityReportResponseDTO> getReportsByScope(ReportScope scope) {
+        return hospitalityReportRepository.findByScope(scope).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public void deleteReport(Integer id) {
+        HospitalityReport report = hospitalityReportRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Report not found with id: " + id));
+        hospitalityReportRepository.delete(report);
+    }
+
+    private HospitalityReportResponseDTO mapToResponse(HospitalityReport r) {
+        return new HospitalityReportResponseDTO(r.getReportId(), r.getScope(), r.getMetricsJson(), r.getGeneratedDate());
+    }
+}
+
+java
+
+// ===== NOTIFICATION SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.NotificationRequestDTO;
+import com.staynest.demo.dto.NotificationResponseDTO;
+import com.staynest.demo.enums.NotificationStatus;
+import java.util.List;
+
+public interface NotificationService {
+    NotificationResponseDTO createNotification(NotificationRequestDTO dto);
+    NotificationResponseDTO getNotificationById(Integer id);
+    List<NotificationResponseDTO> getAllNotifications();
+    List<NotificationResponseDTO> getNotificationsByUser(Integer userId);
+    List<NotificationResponseDTO> getNotificationsByStatus(NotificationStatus status);
+    NotificationResponseDTO markAsRead(Integer id);
+    void deleteNotification(Integer id);
+}
+
+java
+
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.NotificationRequestDTO;
+import com.staynest.demo.dto.NotificationResponseDTO;
+import com.staynest.demo.entities.Notification;
+import com.staynest.demo.entities.Users;
+import com.staynest.demo.enums.NotificationStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.NotificationRepository;
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.NotificationService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class NotificationServiceImpl implements NotificationService {
+
+    private final NotificationRepository notificationRepository;
+    private final UsersRepository usersRepository;
+
+    @Override
+    public NotificationResponseDTO createNotification(NotificationRequestDTO dto) {
+        Users user = usersRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getUserId()));
+        Notification n = new Notification();
+        n.setUser(user);
+        n.setMessage(dto.getMessage());
+        n.setCategory(dto.getCategory());
+        n.setStatus(NotificationStatus.Unread);
+        n.setCreatedDate(LocalDateTime.now());
+        return mapToResponse(notificationRepository.save(n));
+    }
+
+    @Override
+    public NotificationResponseDTO getNotificationById(Integer id) {
+        Notification n = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + id));
+        return mapToResponse(n);
+    }
+
+    @Override
+    public List<NotificationResponseDTO> getAllNotifications() {
+        return notificationRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<NotificationResponseDTO> getNotificationsByUser(Integer userId) {
+        return notificationRepository.findByUser_UserId(userId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<NotificationResponseDTO> getNotificationsByStatus(NotificationStatus status) {
+        return notificationRepository.findByStatus(status).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public NotificationResponseDTO markAsRead(Integer id) {
+        Notification n = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + id));
+        n.setStatus(NotificationStatus.Read);
+        return mapToResponse(notificationRepository.save(n));
+    }
+
+    @Override
+    public void deleteNotification(Integer id) {
+        Notification n = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + id));
+        notificationRepository.delete(n);
+    }
+
+    private NotificationResponseDTO mapToResponse(Notification n) {
+        return new NotificationResponseDTO(n.getNotificationId(), n.getUser().getUserId(),
+                n.getMessage(), n.getCategory(), n.getStatus(), n.getCreatedDate());
+    }
+}
+
+Notes / things you'll need next:
+
+    I assumed a ResourceNotFoundException (custom, extends RuntimeException) in package com.staynest.demo.exception — let me know if you already have a different name.
+@Service
+@RequiredArgsConstructor
+public class HospitalityReportServiceImpl implements HospitalityReportService {
+
+    private final HospitalityReportRepository hospitalityReportRepository;
+
+    @Override
+    public HospitalityReportResponseDTO generateReport(HospitalityReportRequestDTO dto) {
+        HospitalityReport report = new HospitalityReport();
+        report.setScope(dto.getScope());
+        report.setMetricsJson(dto.getMetricsJson());
+        report.setGeneratedDate(LocalDateTime.now());
+        return mapToResponse(hospitalityReportRepository.save(report));
+    }
+
+    @Override
+    public HospitalityReportResponseDTO getReportById(Integer id) {
+        HospitalityReport report = hospitalityReportRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Report not found with id: " + id));
+        return mapToResponse(report);
+    }
+
+    @Override
+    public List<HospitalityReportResponseDTO> getAllReports() {
+        return hospitalityReportRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<HospitalityReportResponseDTO> getReportsByScope(ReportScope scope) {
+        return hospitalityReportRepository.findByScope(scope).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public void deleteReport(Integer id) {
+        HospitalityReport report = hospitalityReportRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Report not found with id: " + id));
+        hospitalityReportRepository.delete(report);
+    }
+
+    private HospitalityReportResponseDTO mapToResponse(HospitalityReport r) {
+        return new HospitalityReportResponseDTO(r.getReportId(), r.getScope(), r.getMetricsJson(), r.getGeneratedDate());
+    }
+}
+java// ===== NOTIFICATION SERVICE =====
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.NotificationRequestDTO;
+import com.staynest.demo.dto.NotificationResponseDTO;
+import com.staynest.demo.enums.NotificationStatus;
+import java.util.List;
+
+public interface NotificationService {
+    NotificationResponseDTO createNotification(NotificationRequestDTO dto);
+    NotificationResponseDTO getNotificationById(Integer id);
+    List<NotificationResponseDTO> getAllNotifications();
+    List<NotificationResponseDTO> getNotificationsByUser(Integer userId);
+    List<NotificationResponseDTO> getNotificationsByStatus(NotificationStatus status);
+    NotificationResponseDTO markAsRead(Integer id);
+    void deleteNotification(Integer id);
+}
+javapackage com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.NotificationRequestDTO;
+import com.staynest.demo.dto.NotificationResponseDTO;
+import com.staynest.demo.entities.Notification;
+import com.staynest.demo.entities.Users;
+import com.staynest.demo.enums.NotificationStatus;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.NotificationRepository;
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.NotificationService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class NotificationServiceImpl implements NotificationService {
+
+    private final NotificationRepository notificationRepository;
+    private final UsersRepository usersRepository;
+
+    @Override
+    public NotificationResponseDTO createNotification(NotificationRequestDTO dto) {
+        Users user = usersRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + dto.getUserId()));
+        Notification n = new Notification();
+        n.setUser(user);
+        n.setMessage(dto.getMessage());
+        n.setCategory(dto.getCategory());
+        n.setStatus(NotificationStatus.Unread);
+        n.setCreatedDate(LocalDateTime.now());
+        return mapToResponse(notificationRepository.save(n));
+    }
+
+    @Override
+    public NotificationResponseDTO getNotificationById(Integer id) {
+        Notification n = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + id));
+        return mapToResponse(n);
+    }
+
+    @Override
+    public List<NotificationResponseDTO> getAllNotifications() {
+        return notificationRepository.findAll().stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<NotificationResponseDTO> getNotificationsByUser(Integer userId) {
+        return notificationRepository.findByUser_UserId(userId).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<NotificationResponseDTO> getNotificationsByStatus(NotificationStatus status) {
+        return notificationRepository.findByStatus(status).stream()
+                .map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public NotificationResponseDTO markAsRead(Integer id) {
+        Notification n = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + id));
+        n.setStatus(NotificationStatus.Read);
+        return mapToResponse(notificationRepository.save(n));
+    }
+
+    @Override
+    public void deleteNotification(Integer id) {
+        Notification n = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + id));
+        notificationRepository.delete(n);
+    }
+
+    private NotificationResponseDTO mapToResponse(Notification n) {
+        return new NotificationResponseDTO(n.getNotificationId(), n.getUser().getUserId(),
+                n.getMessage(), n.getCategory(), n.getStatus(), n.getCreatedDate());
+    }
+}
+Notes / things you'll need next:
+
+I assumed a ResourceNotFoundException (custom, extends RuntimeException) in package com.staynest.demo.exception — let me know if you already have a different name.
