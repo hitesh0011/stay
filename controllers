@@ -1,0 +1,373 @@
+package com.staynest.demo.controller;
+
+import com.staynest.demo.dto.*;
+import com.staynest.demo.service.UserService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
+
+@RestController @RequestMapping("/api/users") @RequiredArgsConstructor
+public class UserController {
+    private final UserService userService;
+
+    @PostMapping public ResponseEntity<UserResponseDTO> create(@RequestBody UserRequestDTO dto) {
+        return ResponseEntity.ok(userService.createUser(dto)); }
+
+    @GetMapping("/{id}") public ResponseEntity<UserResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(userService.getUserById(id)); }
+
+    @GetMapping public ResponseEntity<List<UserResponseDTO>> getAll() {
+        return ResponseEntity.ok(userService.getAllUsers()); }
+
+    @PutMapping("/{id}") public ResponseEntity<UserResponseDTO> update(@PathVariable Integer id, @RequestBody UserRequestDTO dto) {
+        return ResponseEntity.ok(userService.updateUser(id, dto)); }
+
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        userService.deleteUser(id); return ResponseEntity.noContent().build(); }
+}
+java@RestController @RequestMapping("/api/audit-logs") @RequiredArgsConstructor
+public class AuditLogController {
+    private final AuditLogService auditLogService;
+
+    @GetMapping public ResponseEntity<List<AuditLogResponseDTO>> getAll() {
+        return ResponseEntity.ok(auditLogService.getAllLogs()); }
+
+    @GetMapping("/user/{userId}") public ResponseEntity<List<AuditLogResponseDTO>> getByUser(@PathVariable Integer userId) {
+        return ResponseEntity.ok(auditLogService.getLogsByUser(userId)); }
+}
+java@RestController @RequestMapping("/api/guests") @RequiredArgsConstructor
+public class GuestProfileController {
+    private final GuestProfileService guestProfileService;
+
+    @PostMapping public ResponseEntity<GuestProfileResponseDTO> create(@RequestBody GuestProfileRequestDTO dto) {
+        return ResponseEntity.ok(guestProfileService.createGuestProfile(dto)); }
+
+    @GetMapping("/{id}") public ResponseEntity<GuestProfileResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(guestProfileService.getGuestById(id)); }
+
+    @GetMapping public ResponseEntity<List<GuestProfileResponseDTO>> getAll() {
+        return ResponseEntity.ok(guestProfileService.getAllGuests()); }
+
+    @GetMapping("/user/{userId}") public ResponseEntity<GuestProfileResponseDTO> getByUser(@PathVariable Integer userId) {
+        return ResponseEntity.ok(guestProfileService.getGuestByUserId(userId)); }
+
+    @PutMapping("/{id}") public ResponseEntity<GuestProfileResponseDTO> update(@PathVariable Integer id, @RequestBody GuestProfileRequestDTO dto) {
+        return ResponseEntity.ok(guestProfileService.updateGuestProfile(id, dto)); }
+
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        guestProfileService.deleteGuestProfile(id); return ResponseEntity.noContent().build(); }
+}
+java@RestController @RequestMapping("/api/room-types") @RequiredArgsConstructor
+public class RoomTypeController {
+    private final RoomTypeService roomTypeService;
+
+    @PostMapping public ResponseEntity<RoomTypeResponseDTO> create(@RequestBody RoomTypeRequestDTO dto) {
+        return ResponseEntity.ok(roomTypeService.createRoomType(dto)); }
+
+    @GetMapping("/{id}") public ResponseEntity<RoomTypeResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(roomTypeService.getRoomTypeById(id)); }
+
+    @GetMapping public ResponseEntity<List<RoomTypeResponseDTO>> getAll() {
+        return ResponseEntity.ok(roomTypeService.getAllRoomTypes()); }
+
+    @GetMapping("/status/{status}") public ResponseEntity<List<RoomTypeResponseDTO>> getByStatus(@PathVariable RoomTypeStatus status) {
+        return ResponseEntity.ok(roomTypeService.getRoomTypesByStatus(status)); }
+
+    @PutMapping("/{id}") public ResponseEntity<RoomTypeResponseDTO> update(@PathVariable Integer id, @RequestBody RoomTypeRequestDTO dto) {
+        return ResponseEntity.ok(roomTypeService.updateRoomType(id, dto)); }
+
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        roomTypeService.deleteRoomType(id); return ResponseEntity.noContent().build(); }
+}
+java@RestController @RequestMapping("/api/rooms") @RequiredArgsConstructor
+public class RoomController {
+    private final RoomService roomService;
+
+    @PostMapping public ResponseEntity<RoomResponseDTO> create(@RequestBody RoomRequestDTO dto) {
+        return ResponseEntity.ok(roomService.createRoom(dto)); }
+
+    @GetMapping("/{id}") public ResponseEntity<RoomResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(roomService.getRoomById(id)); }
+
+    @GetMapping public ResponseEntity<List<RoomResponseDTO>> getAll() {
+        return ResponseEntity.ok(roomService.getAllRooms()); }
+
+    @GetMapping("/status/{status}") public ResponseEntity<List<RoomResponseDTO>> getByStatus(@PathVariable RoomStatus status) {
+        return ResponseEntity.ok(roomService.getRoomsByStatus(status)); }
+
+    @GetMapping("/room-type/{roomTypeId}") public ResponseEntity<List<RoomResponseDTO>> getByRoomType(@PathVariable Integer roomTypeId) {
+        return ResponseEntity.ok(roomService.getRoomsByRoomType(roomTypeId)); }
+
+    @PutMapping("/{id}") public ResponseEntity<RoomResponseDTO> update(@PathVariable Integer id, @RequestBody RoomRequestDTO dto) {
+        return ResponseEntity.ok(roomService.updateRoom(id, dto)); }
+
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        roomService.deleteRoom(id); return ResponseEntity.noContent().build(); }
+}
+java@RestController @RequestMapping("/api/rate-plans") @RequiredArgsConstructor
+public class RatePlanController {
+    private final RatePlanService ratePlanService;
+
+    @PostMapping public ResponseEntity<RatePlanResponseDTO> create(@RequestBody RatePlanRequestDTO dto) {
+        return ResponseEntity.ok(ratePlanService.createRatePlan(dto)); }
+
+    @GetMapping("/{id}") public ResponseEntity<RatePlanResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(ratePlanService.getRatePlanById(id)); }
+
+    @GetMapping public ResponseEntity<List<RatePlanResponseDTO>> getAll() {
+        return ResponseEntity.ok(ratePlanService.getAllRatePlans()); }
+
+    @GetMapping("/room-type/{roomTypeId}") public ResponseEntity<List<RatePlanResponseDTO>> getByRoomType(@PathVariable Integer roomTypeId) {
+        return ResponseEntity.ok(ratePlanService.getRatePlansByRoomType(roomTypeId)); }
+
+    @PutMapping("/{id}") public ResponseEntity<RatePlanResponseDTO> update(@PathVariable Integer id, @RequestBody RatePlanRequestDTO dto) {
+        return ResponseEntity.ok(ratePlanService.updateRatePlan(id, dto)); }
+
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        ratePlanService.deleteRatePlan(id); return ResponseEntity.noContent().build(); }
+}
+java@RestController @RequestMapping("/api/reservations") @RequiredArgsConstructor
+public class ReservationController {
+    private final ReservationService reservationService;
+
+    @PostMapping public ResponseEntity<ReservationResponseDTO> create(@RequestBody ReservationRequestDTO dto) {
+        return ResponseEntity.ok(reservationService.createReservation(dto)); }
+
+    @GetMapping("/{id}") public ResponseEntity<ReservationResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(reservationService.getReservationById(id)); }
+
+    @GetMapping public ResponseEntity<List<ReservationResponseDTO>> getAll() {
+        return ResponseEntity.ok(reservationService.getAllReservations()); }
+
+    @GetMapping("/guest/{guestId}") public ResponseEntity<List<ReservationResponseDTO>> getByGuest(@PathVariable Integer guestId) {
+        return ResponseEntity.ok(reservationService.getReservationsByGuest(guestId)); }
+
+    @GetMapping("/status/{status}") public ResponseEntity<List<ReservationResponseDTO>> getByStatus(@PathVariable ReservationStatus status) {
+        return ResponseEntity.ok(reservationService.getReservationsByStatus(status)); }
+
+    @PutMapping("/{id}") public ResponseEntity<ReservationResponseDTO> update(@PathVariable Integer id, @RequestBody ReservationRequestDTO dto) {
+        return ResponseEntity.ok(reservationService.updateReservation(id, dto)); }
+
+    @PatchMapping("/{id}/cancel") public ResponseEntity<ReservationResponseDTO> cancel(@PathVariable Integer id) {
+        return ResponseEntity.ok(reservationService.cancelReservation(id)); }
+
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        reservationService.deleteReservation(id); return ResponseEntity.noContent().build(); }
+}
+java@RestController @RequestMapping("/api/stays") @RequiredArgsConstructor
+public class StayRecordController {
+    private final StayRecordService stayRecordService;
+
+    @PostMapping("/check-in") public ResponseEntity<StayRecordResponseDTO> checkIn(@RequestBody StayRecordRequestDTO dto) {
+        return ResponseEntity.ok(stayRecordService.checkIn(dto)); }
+
+    @GetMapping("/{id}") public ResponseEntity<StayRecordResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(stayRecordService.getStayById(id)); }
+
+    @GetMapping public ResponseEntity<List<StayRecordResponseDTO>> getAll() {
+        return ResponseEntity.ok(stayRecordService.getAllStays()); }
+
+    @GetMapping("/reservation/{reservationId}") public ResponseEntity<StayRecordResponseDTO> getByReservation(@PathVariable Integer reservationId) {
+        return ResponseEntity.ok(stayRecordService.getStayByReservation(reservationId)); }
+
+    @GetMapping("/status/{status}") public ResponseEntity<List<StayRecordResponseDTO>> getByStatus(@PathVariable StayStatus status) {
+        return ResponseEntity.ok(stayRecordService.getStaysByStatus(status)); }
+
+    @PutMapping("/{id}") public ResponseEntity<StayRecordResponseDTO> update(@PathVariable Integer id, @RequestBody StayRecordRequestDTO dto) {
+        return ResponseEntity.ok(stayRecordService.updateStay(id, dto)); }
+
+    @PatchMapping("/{id}/check-out") public ResponseEntity<StayRecordResponseDTO> checkOut(@PathVariable Integer id) {
+        return ResponseEntity.ok(stayRecordService.checkOut(id)); }
+
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        stayRecordService.deleteStay(id); return ResponseEntity.noContent().build(); }
+}
+java@RestController @RequestMapping("/api/folio-items") @RequiredArgsConstructor
+public class FolioItemController {
+    private final FolioItemService folioItemService;
+
+    @PostMapping public ResponseEntity<FolioItemResponseDTO> postCharge(@RequestBody FolioItemRequestDTO dto) {
+        return ResponseEntity.ok(folioItemService.postCharge(dto)); }
+
+    @GetMapping("/{id}") public ResponseEntity<FolioItemResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(folioItemService.getFolioItemById(id)); }
+
+    @GetMapping("/stay/{stayId}") public ResponseEntity<List<FolioItemResponseDTO>> getByStay(@PathVariable Integer stayId) {
+        return ResponseEntity.ok(folioItemService.getItemsByStay(stayId)); }
+
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        folioItemService.deleteFolioItem(id); return ResponseEntity.noContent().build(); }
+}
+java@RestController @RequestMapping("/api/housekeeping") @RequiredArgsConstructor
+public class HousekeepingTaskController {
+    private final HousekeepingTaskService housekeepingTaskService;
+
+    @PostMapping public ResponseEntity<HousekeepingTaskResponseDTO> create(@RequestBody HousekeepingTaskRequestDTO dto) {
+        return ResponseEntity.ok(housekeepingTaskService.createTask(dto)); }
+
+    @GetMapping("/{id}") public ResponseEntity<HousekeepingTaskResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(housekeepingTaskService.getTaskById(id)); }
+
+    @GetMapping public ResponseEntity<List<HousekeepingTaskResponseDTO>> getAll() {
+        return ResponseEntity.ok(housekeepingTaskService.getAllTasks()); }
+
+    @GetMapping("/room/{roomId}") public ResponseEntity<List<HousekeepingTaskResponseDTO>> getByRoom(@PathVariable Integer roomId) {
+        return ResponseEntity.ok(housekeepingTaskService.getTasksByRoom(roomId)); }
+
+    @GetMapping("/status/{status}") public ResponseEntity<List<HousekeepingTaskResponseDTO>> getByStatus(@PathVariable TaskStatus status) {
+        return ResponseEntity.ok(housekeepingTaskService.getTasksByStatus(status)); }
+
+    @PutMapping("/{id}") public ResponseEntity<HousekeepingTaskResponseDTO> update(@PathVariable Integer id, @RequestBody HousekeepingTaskRequestDTO dto) {
+        return ResponseEntity.ok(housekeepingTaskService.updateTask(id, dto)); }
+
+    @PatchMapping("/{id}/complete") public ResponseEntity<HousekeepingTaskResponseDTO> complete(@PathVariable Integer id) {
+        return ResponseEntity.ok(housekeepingTaskService.completeTask(id)); }
+
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        housekeepingTaskService.deleteTask(id); return ResponseEntity.noContent().build(); }
+}
+java@RestController @RequestMapping("/api/maintenance") @RequiredArgsConstructor
+public class MaintenanceRequestController {
+    private final MaintenanceRequestService maintenanceRequestService;
+
+    @PostMapping public ResponseEntity<MaintenanceRequestResponseDTO> create(@RequestBody MaintenanceRequestRequestDTO dto) {
+        return ResponseEntity.ok(maintenanceRequestService.createRequest(dto)); }
+
+    @GetMapping("/{id}") public ResponseEntity<MaintenanceRequestResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(maintenanceRequestService.getRequestById(id)); }
+
+    @GetMapping public ResponseEntity<List<MaintenanceRequestResponseDTO>> getAll() {
+        return ResponseEntity.ok(maintenanceRequestService.getAllRequests()); }
+
+    @GetMapping("/room/{roomId}") public ResponseEntity<List<MaintenanceRequestResponseDTO>> getByRoom(@PathVariable Integer roomId) {
+        return ResponseEntity.ok(maintenanceRequestService.getRequestsByRoom(roomId)); }
+
+    @GetMapping("/status/{status}") public ResponseEntity<List<MaintenanceRequestResponseDTO>> getByStatus(@PathVariable RequestStatus status) {
+        return ResponseEntity.ok(maintenanceRequestService.getRequestsByStatus(status)); }
+
+    @PutMapping("/{id}") public ResponseEntity<MaintenanceRequestResponseDTO> update(@PathVariable Integer id, @RequestBody MaintenanceRequestRequestDTO dto) {
+        return ResponseEntity.ok(maintenanceRequestService.updateRequest(id, dto)); }
+
+    @PatchMapping("/{id}/resolve") public ResponseEntity<MaintenanceRequestResponseDTO> resolve(@PathVariable Integer id) {
+        return ResponseEntity.ok(maintenanceRequestService.resolveRequest(id)); }
+
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        maintenanceRequestService.deleteRequest(id); return ResponseEntity.noContent().build(); }
+}
+java@RestController @RequestMapping("/api/menu") @RequiredArgsConstructor
+public class MenuItemController {
+    private final MenuItemService menuItemService;
+
+    @PostMapping public ResponseEntity<MenuItemResponseDTO> create(@RequestBody MenuItemRequestDTO dto) {
+        return ResponseEntity.ok(menuItemService.createMenuItem(dto)); }
+
+    @GetMapping("/{id}") public ResponseEntity<MenuItemResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(menuItemService.getMenuItemById(id)); }
+
+    @GetMapping public ResponseEntity<List<MenuItemResponseDTO>> getAll() {
+        return ResponseEntity.ok(menuItemService.getAllMenuItems()); }
+
+    @GetMapping("/available") public ResponseEntity<List<MenuItemResponseDTO>> getAvailable(@RequestParam Boolean isAvailable) {
+        return ResponseEntity.ok(menuItemService.getAvailableMenuItems(isAvailable)); }
+
+    @PutMapping("/{id}") public ResponseEntity<MenuItemResponseDTO> update(@PathVariable Integer id, @RequestBody MenuItemRequestDTO dto) {
+        return ResponseEntity.ok(menuItemService.updateMenuItem(id, dto)); }
+
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        menuItemService.deleteMenuItem(id); return ResponseEntity.noContent().build(); }
+}
+java@RestController @RequestMapping("/api/fb") @RequiredArgsConstructor
+public class FBOrderController {
+    private final FBOrderService fbOrderService;
+
+    @PostMapping public ResponseEntity<FBOrderResponseDTO> create(@RequestBody FBOrderRequestDTO dto) {
+        return ResponseEntity.ok(fbOrderService.createOrder(dto)); }
+
+    @GetMapping("/{id}") public ResponseEntity<FBOrderResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(fbOrderService.getOrderById(id)); }
+
+    @GetMapping public ResponseEntity<List<FBOrderResponseDTO>> getAll() {
+        return ResponseEntity.ok(fbOrderService.getAllOrders()); }
+
+    @GetMapping("/stay/{stayId}") public ResponseEntity<List<FBOrderResponseDTO>> getByStay(@PathVariable Integer stayId) {
+        return ResponseEntity.ok(fbOrderService.getOrdersByStay(stayId)); }
+
+    @GetMapping("/status/{status}") public ResponseEntity<List<FBOrderResponseDTO>> getByStatus(@PathVariable OrderStatus status) {
+        return ResponseEntity.ok(fbOrderService.getOrdersByStatus(status)); }
+
+    @PatchMapping("/{id}/status") public ResponseEntity<FBOrderResponseDTO> updateStatus(@PathVariable Integer id, @RequestParam OrderStatus status) {
+        return ResponseEntity.ok(fbOrderService.updateOrderStatus(id, status)); }
+
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        fbOrderService.deleteOrder(id); return ResponseEntity.noContent().build(); }
+}
+java@RestController @RequestMapping("/api/dining") @RequiredArgsConstructor
+public class DiningReservationController {
+    private final DiningReservationService diningReservationService;
+
+    @PostMapping public ResponseEntity<DiningReservationResponseDTO> create(@RequestBody DiningReservationRequestDTO dto) {
+        return ResponseEntity.ok(diningReservationService.createDiningReservation(dto)); }
+
+    @GetMapping("/{id}") public ResponseEntity<DiningReservationResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(diningReservationService.getDiningReservationById(id)); }
+
+    @GetMapping public ResponseEntity<List<DiningReservationResponseDTO>> getAll() {
+        return ResponseEntity.ok(diningReservationService.getAllDiningReservations()); }
+
+    @GetMapping("/guest/{guestId}") public ResponseEntity<List<DiningReservationResponseDTO>> getByGuest(@PathVariable Integer guestId) {
+        return ResponseEntity.ok(diningReservationService.getDiningReservationsByGuest(guestId)); }
+
+    @GetMapping("/status/{status}") public ResponseEntity<List<DiningReservationResponseDTO>> getByStatus(@PathVariable DiningStatus status) {
+        return ResponseEntity.ok(diningReservationService.getDiningReservationsByStatus(status)); }
+
+    @PutMapping("/{id}") public ResponseEntity<DiningReservationResponseDTO> update(@PathVariable Integer id, @RequestBody DiningReservationRequestDTO dto) {
+        return ResponseEntity.ok(diningReservationService.updateDiningReservation(id, dto)); }
+
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        diningReservationService.deleteDiningReservation(id); return ResponseEntity.noContent().build(); }
+}
+java@RestController @RequestMapping("/api/reports") @RequiredArgsConstructor
+public class HospitalityReportController {
+    private final HospitalityReportService hospitalityReportService;
+
+    @PostMapping public ResponseEntity<HospitalityReportResponseDTO> generate(@RequestBody HospitalityReportRequestDTO dto) {
+        return ResponseEntity.ok(hospitalityReportService.generateReport(dto)); }
+
+    @GetMapping("/{id}") public ResponseEntity<HospitalityReportResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(hospitalityReportService.getReportById(id)); }
+
+    @GetMapping public ResponseEntity<List<HospitalityReportResponseDTO>> getAll() {
+        return ResponseEntity.ok(hospitalityReportService.getAllReports()); }
+
+    @GetMapping("/scope/{scope}") public ResponseEntity<List<HospitalityReportResponseDTO>> getByScope(@PathVariable ReportScope scope) {
+        return ResponseEntity.ok(hospitalityReportService.getReportsByScope(scope)); }
+
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        hospitalityReportService.deleteReport(id); return ResponseEntity.noContent().build(); }
+}
+java@RestController @RequestMapping("/api/notifications") @RequiredArgsConstructor
+public class NotificationController {
+    private final NotificationService notificationService;
+
+    @PostMapping public ResponseEntity<NotificationResponseDTO> create(@RequestBody NotificationRequestDTO dto) {
+        return ResponseEntity.ok(notificationService.createNotification(dto)); }
+
+    @GetMapping("/{id}") public ResponseEntity<NotificationResponseDTO> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(notificationService.getNotificationById(id)); }
+
+    @GetMapping public ResponseEntity<List<NotificationResponseDTO>> getAll() {
+        return ResponseEntity.ok(notificationService.getAllNotifications()); }
+
+    @GetMapping("/user/{userId}") public ResponseEntity<List<NotificationResponseDTO>> getByUser(@PathVariable Integer userId) {
+        return ResponseEntity.ok(notificationService.getNotificationsByUser(userId)); }
+
+    @GetMapping("/status/{status}") public ResponseEntity<List<NotificationResponseDTO>> getByStatus(@PathVariable NotificationStatus status) {
+        return ResponseEntity.ok(notificationService.getNotificationsByStatus(status)); }
+
+    @PatchMapping("/{id}/read") public ResponseEntity<NotificationResponseDTO> markRead(@PathVariable Integer id) {
+        return ResponseEntity.ok(notificationService.markAsRead(id)); }
+
+    @DeleteMapping("/{id}") public ResponseEntity<Void> delete(@PathVariable Integer id) {
+        notificationService.deleteNotification(id); return ResponseEntity.noContent().build(); }
+}
