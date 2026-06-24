@@ -1,0 +1,732 @@
+Here are all 16 entities — I've kept your six existing ones (with the `mappedBy` fix applied, keeping `users` as the field name per your last message) and added the 10 you haven't built yet, following your same conventions.
+
+```java
+package com.staynest.demo.entities;
+
+import com.staynest.demo.enums.Role;
+import com.staynest.demo.enums.UserStatus;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class Users {
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer userId;
+	private String name;
+
+	@Enumerated(EnumType.STRING)
+	private Role role;
+
+	@Column(unique = true)
+	private String email;
+	private String password;
+	private String phone;
+
+	@Enumerated(EnumType.STRING)
+	private UserStatus userStatus;
+
+	@OneToMany(mappedBy = "user")
+	private List<AuditLog> auditlogs;
+
+	@OneToOne(mappedBy = "users")
+	private GuestProfile guestProfile;
+}
+```
+
+```java
+package com.staynest.demo.entities;
+
+import java.time.LocalDateTime;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class AuditLog {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer auditId;
+
+	@ManyToOne
+	@JoinColumn(name = "user_id")
+	private Users user;
+
+	private String action;
+	private String entityType;
+	private LocalDateTime localDateTime;
+}
+```
+
+```java
+package com.staynest.demo.entities;
+
+import com.staynest.demo.enums.GuestStatus;
+import com.staynest.demo.enums.LoyaltyTier;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class GuestProfile {
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer guestId;
+
+	@OneToOne
+	@JoinColumn(name = "user_id")
+	private Users users;
+
+	private String nationality;
+	private String idDocumentType;
+	private String idNumber;
+	private String preferencesJson;
+
+	@Enumerated(EnumType.STRING)
+	private LoyaltyTier loyaltyTier;
+
+	@Enumerated(EnumType.STRING)
+	private GuestStatus status;
+}
+```
+
+```java
+package com.staynest.demo.entities;
+
+import java.util.List;
+import com.staynest.demo.enums.RoomTypeName;
+import com.staynest.demo.enums.RoomTypeStatus;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class RoomType {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer roomTypeId;
+
+	@Enumerated(EnumType.STRING)
+	private RoomTypeName name;
+
+	private String bedConfiguration;
+	private Integer maxOccupancy;
+	private Integer baseRate;
+
+	@ElementCollection
+	private List<String> amenitiesList;
+
+	@Enumerated(EnumType.STRING)
+	private RoomTypeStatus roomTypeStatus;
+
+	@OneToMany(mappedBy = "roomType")
+	private List<Room> rooms;
+}
+```
+
+```java
+package com.staynest.demo.entities;
+
+import com.staynest.demo.enums.RoomStatus;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class Room {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer roomId;
+
+	private Integer roomNumber;
+	private Integer floor;
+
+	@ManyToOne
+	@JoinColumn(name = "room_type_id")
+	private RoomType roomType;
+
+	@Enumerated(EnumType.STRING)
+	private RoomStatus roomStatus;
+}
+```
+
+```java
+package com.staynest.demo.entities;
+
+import java.sql.Date;
+import com.staynest.demo.enums.RatePlanStatus;
+import com.staynest.demo.enums.RatePlanType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class RatePlan {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer ratePlanId;
+
+	@ManyToOne
+	@JoinColumn(name = "room_type_id")
+	private RoomType roomType;
+
+	@Enumerated(EnumType.STRING)
+	private RatePlanType ratePlanType;
+
+	private Integer pricePerNight;
+	private Date validFrom;
+	private Date validTo;
+
+	private Boolean mealPlanIncluded;
+
+	@Enumerated(EnumType.STRING)
+	private RatePlanStatus ratePlanStatus;
+}
+```
+
+```java
+package com.staynest.demo.entities;
+
+import java.sql.Date;
+import com.staynest.demo.enums.BookingChannel;
+import com.staynest.demo.enums.ReservationStatus;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class Reservation {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer reservationId;
+
+	@ManyToOne
+	@JoinColumn(name = "guest_id")
+	private GuestProfile guest;
+
+	@ManyToOne
+	@JoinColumn(name = "room_type_id")
+	private RoomType roomType;
+
+	@ManyToOne
+	@JoinColumn(name = "rate_plan_id")
+	private RatePlan ratePlan;
+
+	private Date checkInDate;
+	private Date checkOutDate;
+	private Integer nights;
+	private Integer adults;
+	private Integer children;
+	private Integer totalAmount;
+
+	@Enumerated(EnumType.STRING)
+	private BookingChannel bookingChannel;
+
+	@Enumerated(EnumType.STRING)
+	private ReservationStatus status;
+}
+```
+
+```java
+package com.staynest.demo.entities;
+
+import java.time.LocalDateTime;
+import com.staynest.demo.enums.StayStatus;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class StayRecord {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer stayId;
+
+	@OneToOne
+	@JoinColumn(name = "reservation_id")
+	private Reservation reservation;
+
+	@ManyToOne
+	@JoinColumn(name = "guest_id")
+	private GuestProfile guest;
+
+	@ManyToOne
+	@JoinColumn(name = "assigned_room_id")
+	private Room assignedRoom;
+
+	private LocalDateTime actualCheckIn;
+	private LocalDateTime actualCheckOut;
+	private Integer folioBalance;
+
+	@Enumerated(EnumType.STRING)
+	private StayStatus status;
+}
+```
+
+```java
+package com.staynest.demo.entities;
+
+import java.time.LocalDateTime;
+import com.staynest.demo.enums.ChargeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class FolioItem {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer folioItemId;
+
+	@ManyToOne
+	@JoinColumn(name = "stay_id")
+	private StayRecord stayRecord;
+
+	@Enumerated(EnumType.STRING)
+	private ChargeType chargeType;
+
+	private String description;
+	private Integer amount;
+	private LocalDateTime postedDate;
+
+	@ManyToOne
+	@JoinColumn(name = "posted_by")
+	private Users postedBy;
+}
+```
+
+```java
+package com.staynest.demo.entities;
+
+import java.time.LocalDateTime;
+import com.staynest.demo.enums.TaskStatus;
+import com.staynest.demo.enums.TaskType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class HousekeepingTask {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer taskId;
+
+	@ManyToOne
+	@JoinColumn(name = "room_id")
+	private Room room;
+
+	@Enumerated(EnumType.STRING)
+	private TaskType taskType;
+
+	@ManyToOne
+	@JoinColumn(name = "assigned_to_id")
+	private Users assignedTo;
+
+	private LocalDateTime assignedDate;
+	private LocalDateTime completedAt;
+
+	@Enumerated(EnumType.STRING)
+	private TaskStatus status;
+}
+```
+
+```java
+package com.staynest.demo.entities;
+
+import java.time.LocalDateTime;
+import com.staynest.demo.enums.RequestPriority;
+import com.staynest.demo.enums.RequestStatus;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class MaintenanceRequest {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer requestId;
+
+	@ManyToOne
+	@JoinColumn(name = "room_id")
+	private Room room;
+
+	@ManyToOne
+	@JoinColumn(name = "reported_by")
+	private Users reportedBy;
+
+	private String issueDescription;
+
+	@Enumerated(EnumType.STRING)
+	private RequestPriority priority;
+
+	private LocalDateTime raisedDate;
+	private LocalDateTime resolvedDate;
+
+	@Enumerated(EnumType.STRING)
+	private RequestStatus status;
+}
+```
+
+```java
+package com.staynest.demo.entities;
+
+import java.util.List;
+import com.staynest.demo.enums.MenuCategory;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class MenuItem {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer menuItemId;
+
+	private String name;
+
+	@Enumerated(EnumType.STRING)
+	private MenuCategory category;
+
+	private Integer price;
+	private Boolean isAvailable;
+
+	@ElementCollection
+	private List<String> dietaryTags;
+}
+```
+
+```java
+package com.staynest.demo.entities;
+
+import java.time.LocalDateTime;
+import com.staynest.demo.enums.OrderStatus;
+import com.staynest.demo.enums.OrderType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class FBOrder {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer orderId;
+
+	@ManyToOne
+	@JoinColumn(name = "stay_id")
+	private StayRecord stayRecord;
+
+	private Integer tableNumber;
+
+	@Enumerated(EnumType.STRING)
+	private OrderType orderType;
+
+	private String itemsJson;
+	private Integer totalAmount;
+	private LocalDateTime orderTime;
+
+	@Enumerated(EnumType.STRING)
+	private OrderStatus status;
+}
+```
+
+```java
+package com.staynest.demo.entities;
+
+import java.sql.Date;
+import java.time.LocalTime;
+import com.staynest.demo.enums.DiningStatus;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class DiningReservation {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer diningResId;
+
+	@ManyToOne
+	@JoinColumn(name = "guest_id")
+	private GuestProfile guest;
+
+	@ManyToOne
+	@JoinColumn(name = "stay_id")
+	private StayRecord stayRecord;
+
+	private String restaurantOutlet;
+	private Date date;
+	private LocalTime time;
+	private Integer covers;
+
+	@Enumerated(EnumType.STRING)
+	private DiningStatus status;
+}
+```
+
+```java
+package com.staynest.demo.entities;
+
+import java.time.LocalDateTime;
+import com.staynest.demo.enums.ReportScope;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class HospitalityReport {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer reportId;
+
+	@Enumerated(EnumType.STRING)
+	private ReportScope scope;
+
+	private String metricsJson;
+	private LocalDateTime generatedDate;
+}
+```
+
+```java
+package com.staynest.demo.entities;
+
+import java.time.LocalDateTime;
+import com.staynest.demo.enums.NotificationCategory;
+import com.staynest.demo.enums.NotificationStatus;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+public class Notification {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer notificationId;
+
+	@ManyToOne
+	@JoinColumn(name = "user_id")
+	private Users user;
+
+	private String message;
+
+	@Enumerated(EnumType.STRING)
+	private NotificationCategory category;
+
+	@Enumerated(EnumType.STRING)
+	private NotificationStatus status;
+
+	private LocalDateTime createdDate;
+}
+```
+
+You'll need these enums for it all to compile (you said to exclude these, just flagging the full list so nothing's missing): `BookingChannel`, `ReservationStatus`, `StayStatus`, `ChargeType`, `TaskType`, `TaskStatus`, `RequestPriority`, `RequestStatus`, `MenuCategory`, `OrderType`, `OrderStatus`, `DiningStatus`, `ReportScope`, `NotificationCategory`, `NotificationStatus` — on top of the ones you already have (`Role`, `UserStatus`, `GuestStatus`, `LoyaltyTier`, `RoomTypeName`, `RoomTypeStatus`, `RoomStatus`, `RatePlanType`, `RatePlanStatus`).
+
+One judgment call worth flagging: `StayRecord.reservation` is `@OneToOne` since one reservation should map to exactly one stay — let me know if you intended walk-ins (no prior reservation) to also create a `StayRecord`, in which case that field needs to be nullable, which it already is by default since there's no `nullable = false`.
