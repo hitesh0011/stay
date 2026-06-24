@@ -1,0 +1,376 @@
+Got it. So your pattern is:
+
+- `JwtUtil`, `JwtFilter`, `SecurityConfig` in security package
+- `AuthController`, `AuthRequestDTO`, `AuthResponseDTO`, `AuthService`, `AuthServiceImpl` 
+- AOP handles logging without touching any ServiceImpl
+
+---
+
+### AuthRequestDTO
+```java
+package com.staynest.demo.dto;
+import lombok.Data;
+
+@Data
+public class AuthRequestDTO {
+    private String email;
+    private String password;
+}
+```
+
+### AuthResponseDTO
+```java
+package com.staynest.demo.dto;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
+@Data
+@AllArgsConstructor
+public class AuthResponseDTO {
+    private String token;
+    private String role;
+}
+```
+
+---
+
+### AuthService
+```java
+package com.staynest.demo.service;
+
+import com.staynest.demo.dto.AuthRequestDTO;
+import com.staynest.demo.dto.AuthResponseDTO;
+
+public interface AuthService {
+    AuthResponseDTO login(AuthRequestDTO dto);
+}
+```
+
+---
+
+### AuthServiceImpl
+```java
+package com.staynest.demo.serviceimpl;
+
+import com.staynest.demo.dto.AuthRequestDTO;
+import com.staynest.demo.dto.AuthResponseDTO;
+import com.staynest.demo.entities.Users;
+import com.staynest.demo.exception.ResourceNotFoundException;
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.security.JwtUtil;
+import com.staynest.demo.service.AuthService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class AuthServiceImpl implements AuthService {
+
+    private final UsersRepository usersRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
+
+    @Override
+    public AuthResponseDTO login(AuthRequestDTO dto) {
+        Users user = usersRepository.findByEmail(dto.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + dto.getEmail()));
+        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword()))
+            throw new RuntimeException("Invalid credentials");
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        return new AuthResponseDTO(token, user.getRole().name());
+    }
+}
+```
+
+---
+
+### JwtUtil
+```java
+package com.staynest.demo.security;
+
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import java.security.Key;
+import java.util.Date;
+
+@Component
+public class JwtUtil {
+
+    @Value("${jwt.secret}") private String secret;
+    @Value("${jwt.expiration}") private long expiration;
+
+    private Key key() { return Keys.hmacShaKeyFor(secret.getBytes()); }
+
+    public String generateToken(String email, String role) {
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("role", role)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(key(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String extractEmail(String token) {
+        return Jwts.parserBuilder().setSigningKey(key()).build()
+                .parseClaimsJws(token).getBody().getSubject();
+    }
+
+    public String extractRole(String token) {
+        return Jwts.parserBuilder().setSigningKey(key()).build()
+                .parseClaimsJws(token).getBody().get("role", String.class);
+    }
+
+    public boolean isValid(String token) {
+        try {
+            Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(token);
+            return true;
+        } catch (JwtException | IllegalArgumentException e) { return false; }
+    }
+}
+```
+
+---
+
+### JwtFilter
+```java
+package com.staynest.demo.security;
+
+import jakarta.servlet.*;
+import jakarta.servlet.http.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import java.io.IOException;
+import java.util.List;
+
+@Component
+@RequiredArgsConstructor
+public class JwtFilter extends OncePerRequestFilter {
+
+    private final JwtUtil jwtUtil;
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res,
+                                    FilterChain chain) throws ServletException, IOException {
+        String header = req.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            String token = header.substring(7);
+            if (jwtUtil.isValid(token)) {
+                String email = jwtUtil.extractEmail(token);
+                String role = jwtUtil.extractRole(token);
+                var auth = new UsernamePasswordAuthenticationToken(
+                        email, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            }
+        }
+        chain.doFilter(req, res);
+    }
+}
+```
+
+---
+
+### SecurityConfig
+```java
+package com.staynest.demo.security;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+@EnableMethodSecurity
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    private final JwtFilter jwtFilter;
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http.csrf(c -> c.disable())
+            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(a -> a
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/admin/**").hasRole("Admin")
+                .requestMatchers("/api/housekeeping/**").hasAnyRole("Admin", "Housekeeping")
+                .requestMatchers("/api/fb/**", "/api/dining/**", "/api/menu/**").hasAnyRole("Admin", "FBManager")
+                .requestMatchers("/api/reports/**").hasAnyRole("Admin", "RevenueManager")
+                .anyRequest().authenticated()
+            )
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+}
+```
+
+---
+
+### AuthController
+```java
+package com.staynest.demo.controller;
+
+import com.staynest.demo.dto.AuthRequestDTO;
+import com.staynest.demo.dto.AuthResponseDTO;
+import com.staynest.demo.service.AuthService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final AuthService authService;
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponseDTO> login(@RequestBody AuthRequestDTO dto) {
+        return ResponseEntity.ok(authService.login(dto));
+    }
+}
+```
+
+---
+
+### LoggingAspect (no changes to any ServiceImpl needed)
+```java
+package com.staynest.demo.aspect;
+
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+@Aspect
+@Component
+public class LoggingAspect {
+
+    private static final Logger logger = LoggerFactory.getLogger(LoggingAspect.class);
+
+    @Pointcut("execution(* com.staynest.demo.controller.*.*(..))")
+    public void controllerMethods() {}
+
+    @Pointcut("execution(* com.staynest.demo.serviceimpl.*.*(..))")
+    public void serviceMethods() {}
+
+    @Pointcut("controllerMethods() || serviceMethods()")
+    public void applicationMethods() {}
+
+    @Before("controllerMethods()")
+    public void beforeController(JoinPoint jp) {
+        logger.debug("Controller called: {} | Args: {}", jp.getSignature().getName(), jp.getArgs());
+    }
+
+    @Before("serviceMethods()")
+    public void beforeService(JoinPoint jp) {
+        logger.debug("Service called: {} | Args: {}", jp.getSignature().getName(), jp.getArgs());
+    }
+
+    @After("applicationMethods()")
+    public void afterMethod(JoinPoint jp) {
+        logger.trace("Exiting: {}", jp.getSignature().getName());
+    }
+
+    @AfterReturning(pointcut = "controllerMethods()", returning = "result")
+    public void afterReturningController(JoinPoint jp, Object result) {
+        logger.info("Controller {} SUCCESS | Response: {}", jp.getSignature().getName(), result);
+    }
+
+    @AfterReturning(pointcut = "serviceMethods()", returning = "result")
+    public void afterReturningService(JoinPoint jp, Object result) {
+        logger.info("Service {} SUCCESS | Result: {}", jp.getSignature().getName(), result);
+    }
+
+    @AfterThrowing(pointcut = "applicationMethods()", throwing = "ex")
+    public void afterThrowing(JoinPoint jp, Exception ex) {
+        logger.error("EXCEPTION in {} | Message: {}", jp.getSignature().getName(), ex.getMessage());
+    }
+
+    @Around("applicationMethods()")
+    public Object measureExecutionTime(ProceedingJoinPoint pjp) throws Throwable {
+        long start = System.currentTimeMillis();
+        Object result = pjp.proceed();
+        long timeTaken = System.currentTimeMillis() - start;
+        if (timeTaken > 1000)
+            logger.warn("SLOW METHOD: {} took {}ms", pjp.getSignature().getName(), timeTaken);
+        else
+            logger.debug("Method {} completed in {}ms", pjp.getSignature().getName(), timeTaken);
+        return result;
+    }
+}
+```
+
+---
+
+### AuditLoggingAspect (updated — uses `auth.getName()` since no CustomUserDetails)
+```java
+package com.staynest.demo.aspect;
+
+import com.staynest.demo.repositories.UsersRepository;
+import com.staynest.demo.service.AuditLogService;
+import lombok.RequiredArgsConstructor;
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.AfterReturning;
+import org.aspectj.lang.annotation.Aspect;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+
+@Aspect
+@Component
+@RequiredArgsConstructor
+public class AuditLoggingAspect {
+
+    private final AuditLogService auditLogService;
+    private final UsersRepository usersRepository;
+
+    @AfterReturning("execution(* com.staynest.demo.serviceimpl.*ServiceImpl.create*(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.update*(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.delete*(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.cancel*(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.checkIn(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.checkOut(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.postCharge(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.completeTask(..)) || " +
+                    "execution(* com.staynest.demo.serviceimpl.*ServiceImpl.resolveRequest(..))")
+    public void logAction(JoinPoint jp) {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated()) return;
+            String email = auth.getName();
+            usersRepository.findByEmail(email).ifPresent(user -> {
+                String method = jp.getSignature().getName();
+                String entity = jp.getTarget().getClass().getSimpleName().replace("ServiceImpl", "");
+                auditLogService.createLog(user.getUserId(), method, entity);
+            });
+        } catch (Exception ignored) {}
+    }
+}
+```
+
+---
+
+**Key points:**
+- No `CustomUserDetails` anywhere — `JwtFilter` sets email as principal directly
+- `auth.getName()` in `AuditLoggingAspect` returns email since that's what filter sets as principal
+- No `AuthenticationManager` bean needed — auth is handled manually in `AuthServiceImpl`
+- Zero changes to any existing `ServiceImpl` for logging — AOP handles everything
