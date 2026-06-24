@@ -1,0 +1,216 @@
+All 16, package `com.staynest.demo.repositories`:
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.Users;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UsersRepository extends JpaRepository<Users, Integer> {
+    Optional<Users> findByEmail(String email);
+}
+```
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.AuditLog;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface AuditLogRepository extends JpaRepository<AuditLog, Integer> {
+    List<AuditLog> findByUser_UserId(Integer userId);
+}
+```
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.GuestProfile;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface GuestProfileRepository extends JpaRepository<GuestProfile, Integer> {
+    Optional<GuestProfile> findByUsers_UserId(Integer userId);
+}
+```
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.RoomType;
+import com.staynest.demo.enums.RoomTypeStatus;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface RoomTypeRepository extends JpaRepository<RoomType, Integer> {
+    List<RoomType> findByRoomTypeStatus(RoomTypeStatus status);
+}
+```
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.Room;
+import com.staynest.demo.enums.RoomStatus;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface RoomRepository extends JpaRepository<Room, Integer> {
+    List<Room> findByRoomStatus(RoomStatus status);
+    List<Room> findByRoomType_RoomTypeId(Integer roomTypeId);
+}
+```
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.RatePlan;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface RatePlanRepository extends JpaRepository<RatePlan, Integer> {
+    List<RatePlan> findByRoomType_RoomTypeId(Integer roomTypeId);
+}
+```
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.Reservation;
+import com.staynest.demo.enums.ReservationStatus;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ReservationRepository extends JpaRepository<Reservation, Integer> {
+    List<Reservation> findByGuest_GuestId(Integer guestId);
+    List<Reservation> findByStatus(ReservationStatus status);
+}
+```
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.StayRecord;
+import com.staynest.demo.enums.StayStatus;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface StayRecordRepository extends JpaRepository<StayRecord, Integer> {
+    Optional<StayRecord> findByReservation_ReservationId(Integer reservationId);
+    List<StayRecord> findByStatus(StayStatus status);
+}
+```
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.FolioItem;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface FolioItemRepository extends JpaRepository<FolioItem, Integer> {
+    List<FolioItem> findByStayRecord_StayId(Integer stayId);
+}
+```
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.HousekeepingTask;
+import com.staynest.demo.enums.TaskStatus;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface HousekeepingTaskRepository extends JpaRepository<HousekeepingTask, Integer> {
+    List<HousekeepingTask> findByRoom_RoomId(Integer roomId);
+    List<HousekeepingTask> findByStatus(TaskStatus status);
+}
+```
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.MaintenanceRequest;
+import com.staynest.demo.enums.RequestStatus;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface MaintenanceRequestRepository extends JpaRepository<MaintenanceRequest, Integer> {
+    List<MaintenanceRequest> findByRoom_RoomId(Integer roomId);
+    List<MaintenanceRequest> findByStatus(RequestStatus status);
+}
+```
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.MenuItem;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface MenuItemRepository extends JpaRepository<MenuItem, Integer> {
+    List<MenuItem> findByIsAvailable(Boolean isAvailable);
+}
+```
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.FBOrder;
+import com.staynest.demo.enums.OrderStatus;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface FBOrderRepository extends JpaRepository<FBOrder, Integer> {
+    List<FBOrder> findByStayRecord_StayId(Integer stayId);
+    List<FBOrder> findByStatus(OrderStatus status);
+}
+```
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.DiningReservation;
+import com.staynest.demo.enums.DiningStatus;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface DiningReservationRepository extends JpaRepository<DiningReservation, Integer> {
+    List<DiningReservation> findByGuest_GuestId(Integer guestId);
+    List<DiningReservation> findByStatus(DiningStatus status);
+}
+```
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.HospitalityReport;
+import com.staynest.demo.enums.ReportScope;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface HospitalityReportRepository extends JpaRepository<HospitalityReport, Integer> {
+    List<HospitalityReport> findByScope(ReportScope scope);
+}
+```
+
+```java
+package com.staynest.demo.repositories;
+
+import com.staynest.demo.entities.Notification;
+import com.staynest.demo.enums.NotificationStatus;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface NotificationRepository extends JpaRepository<Notification, Integer> {
+    List<Notification> findByUser_UserId(Integer userId);
+    List<Notification> findByStatus(NotificationStatus status);
+}
+```
+
+Note the `_` syntax (e.g. `findByUser_UserId`) — that's Spring Data's way of reaching through a relationship: "find by the `user` field's `userId` property." It only works because the field name in your entity (`user`, `guest`, `roomType`, etc.) matches exactly. Same naming-must-match rule as `mappedBy`.
+
+Next up: DTOs + `UserService`/`AuditLogService` for IAM. Want those now?
